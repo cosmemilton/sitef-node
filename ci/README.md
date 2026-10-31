@@ -15,7 +15,7 @@ The template expects the committed npm lockfile and public development/peer
 dependencies to be installable. It has not been executed by GitHub Actions in
 this project; local checks are recorded separately in the validation documents.
 
-The action major versions were checked against their maintainers' primary
-documentation: [checkout](https://github.com/actions/checkout),
-[setup-node](https://github.com/actions/setup-node), and
-[setup-python](https://github.com/actions/setup-python).
+The exact action tags were checked against their maintainers' primary release
+pages: [checkout v7.0.0](https://github.com/actions/checkout/releases/tag/v7.0.0),
+[setup-node v7.0.0](https://github.com/actions/setup-node/releases/tag/v7.0.0), and
+[setup-python v7.0.0](https://github.com/actions/setup-python/releases/tag/v7.0.0).
