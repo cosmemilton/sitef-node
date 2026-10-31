@@ -53,9 +53,9 @@ export function ModalRenderer({ bridge }: { bridge: RestrictedSitefBridge }) {
       if (event.type === 'error') { controller.reportError(event.publicMessage); return; }
       if (event.type === 'exchange') {
         // Main forwards this allowlisted metadata from its onExchange observer only.
-        if (event.request.command === 0 && event.request.fieldType === 2470) {
+        if (event.request.command === 0 && [2470,1121,1126,2355].includes(event.request.fieldType)) {
           try { controller.onExchange(event.request); }
-          catch { controller.reportError('A CliSiTef informou uma precisão decimal inválida.'); bridge.cancel({ transactionId: session.transactionId }); }
+          catch { controller.reportError('A CliSiTef informou metadados de coleta inválidos.'); bridge.cancel({ transactionId: session.transactionId }); }
         }
         return;
       }

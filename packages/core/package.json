@@ -1,10 +1,10 @@
 {
   "name": "@cosmemilton/sitef",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SDK Node.js para CliSiTef com ponte nativa isolada e interação customizável",
   "type": "module",
   "license": "UNLICENSED",
-  "exports": {".": {"types": "./dist/index.d.ts", "import": "./dist/index.js"}},
+  "exports": {".": {"types": "./dist/index.d.ts", "import": "./dist/index.js"}, "./fields": {"types": "./dist/fields.d.ts", "import": "./dist/fields.js"}},
   "files": ["dist"],
   "scripts": {"build": "tsc -p tsconfig.json"},
   "engines": {"node": ">=22.18.0"}

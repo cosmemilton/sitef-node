@@ -1,3 +1,9 @@
+import type {
+  FieldSemantic,
+  FieldSnapshot,
+  ReceiptReference,
+  FinalizationPayloadReference
+} from './semantic-types.js';
 export type ContinueFlag = -1 | 0 | 1 | 2 | 10000;
 export interface Configuration {
   server: string;
@@ -27,15 +33,34 @@ export interface NativeExchange {
   bufferBase64?: string;
   decodingError?: boolean;
 }
-export interface UiRequest extends NativeExchange { kind: string }
-export interface UiResponse { buffer?: string; bufferBase64?: string; continueFlag?: ContinueFlag }
-export type InteractionHandler = (request: UiRequest, context: {signal: AbortSignal}) => Promise<UiResponse>;
+export interface UiRequest extends NativeExchange {
+  kind: string;
+  semantic?: FieldSemantic;
+}
+export interface UiResponse {
+  buffer?: string;
+  bufferBase64?: string;
+  continueFlag?: ContinueFlag;
+  confirmed?: boolean;
+}
+export type InteractionHandler = (
+  request: UiRequest,
+  context: { signal: AbortSignal }
+) => Promise<UiResponse>;
 export interface Transport {
-  call<T = Record<string, unknown>>(method: string, params?: Record<string, unknown>): Promise<T>;
+  call<T = Record<string, unknown>>(
+    method: string,
+    params?: Record<string, unknown>
+  ): Promise<T>;
   close(): Promise<void>;
 }
-export type SessionState = 'idle' | 'running' | 'awaiting-finalization' | 'uncertain' | 'closed';
-export interface JournalRecord {
+export type SessionState =
+  | 'idle'
+  | 'running'
+  | 'awaiting-finalization'
+  | 'uncertain'
+  | 'closed';
+export interface LegacyJournalRecord {
   version: 1;
   id: string;
   storeId: string;
@@ -45,13 +70,56 @@ export interface JournalRecord {
   fiscalDocument: string;
   fiscalDate: string;
   fiscalTime: string;
-  state: 'started' | 'awaiting-finalization' | 'finalizing' | 'finalized-local' | 'ended' | 'uncertain';
+  state:
+    | 'started'
+    | 'awaiting-finalization'
+    | 'finalizing'
+    | 'finalized-local'
+    | 'ended'
+    | 'uncertain';
   decision?: 0 | 1;
   /** Escopo exato da decisão; integrador não deve incluir segredos neste parâmetro. */
   finalizationParameters?: string;
   status?: number;
   updatedAt: string;
 }
+export type PaymentState = LegacyJournalRecord['state'];
+export interface PaymentRecord {
+  id: string;
+  functionId: number;
+  entryPoint: string;
+  fiscalDocument: string;
+  fiscalDate: string;
+  fiscalTime: string;
+  state: PaymentState;
+  decision?: 0 | 1;
+  status?: number;
+  paymentIndex?: string;
+  network?: string;
+  finalizationParameters?: string;
+  confirmationAllowed?: boolean;
+  assessmentIssues?: string[];
+  receipts?: ReceiptReference[];
+  signatureRequired?: boolean;
+  signatureCaptured?: boolean;
+  finalizationPayload?: FinalizationPayloadReference;
+  /** O journal V1 não registrava obrigações de comprovantes e assinatura. */
+  legacyReceiptStateUnknown?: boolean;
+}
+export interface GroupJournalRecord {
+  version: 2;
+  id: string;
+  storeId: string;
+  terminalId: string;
+  functionId: number;
+  fiscalDocument: string;
+  fiscalDate: string;
+  fiscalTime: string;
+  state: PaymentState;
+  updatedAt: string;
+  payments: PaymentRecord[];
+}
+export type JournalRecord = LegacyJournalRecord | GroupJournalRecord;
 export interface Journal {
   /** Adquire exclusividade do terminal. Não remova locks após crash automaticamente. */
   acquire(): Promise<void>;
@@ -62,7 +130,29 @@ export interface Journal {
 export interface TransactionResult {
   status: number;
   transactionId: string;
+  groupId?: string;
   requiresFinalization: boolean;
   /** Dados potencialmente sensíveis: não registrar automaticamente. */
-  fields: ReadonlyArray<{fieldType: number; buffer: string; bufferBase64?: string; decodingError?: boolean}>;
+  fields: ReadonlyArray<{
+    fieldType: number;
+    buffer: string;
+    bufferBase64?: string;
+    decodingError?: boolean;
+  }>;
+  details?: FieldSnapshot;
+}
+export interface PendingTransaction {
+  fiscalDocument: string;
+  fiscalDate: string;
+  fiscalTime: string;
+  paymentIndex: string;
+  functionId?: number;
+  amount?: string;
+  fields: NativeExchange[];
+}
+export interface PendingTransactionsResult {
+  status: number;
+  count?: number;
+  transactions: PendingTransaction[];
+  fields: NativeExchange[];
 }

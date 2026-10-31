@@ -5,3 +5,6 @@ export * from './journal.js';
 export * from './client.js';
 export * from './catalog.js';
 export * from './create.js';
+export * from './fields.js';
+export * from './decimal.js';
+export * from './semantic-types.js';

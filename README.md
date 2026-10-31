@@ -10,11 +10,13 @@ x86; nenhuma documentação do kit x64 é usada. O carregamento Linux real perma
 bloqueado até receber e conferir seu kit. Os testes próprios usam uma biblioteca
 C sintética original em Linux x64.
 
-O catálogo não representa tratamento completo de todos os produtos: as 124
-funções do manual estão identificadas, mas seus fluxos não foram todos validados.
-Da tabela com 444 códigos individuais de `TipoCampo`, 40 têm aliases individuais
-no catálogo atual. O motor preserva os demais dados; faltam tratamentos específicos.
-Consulte `docs/implementation-status.md` antes de habilitar uma modalidade.
+A versão 0.2 inclui o catálogo semântico dos **444 TipoCampo individuais** da
+seção 5.3.2, suas faixas, os 64 eventos e as extensões de carteiras: 536 entradas
+individuais. As 124 funções da tabela base e sete de carteiras possuem política de
+finalização explícita. O motor interpreta os formatos documentados e exige hooks
+para obrigações externas, como impressão e validação de produto. Isso não equivale
+a homologação de todos os autorizadores. Consulte [a cobertura](docs/implementation-status.md)
+e [o contrato semântico](docs/semantic-flows.md).
 
 ## Pacotes
 
@@ -79,6 +81,14 @@ const client = await SitefClient.connect({
   },
   // Sempre o mesmo arquivo para o mesmo terminal, em disco local persistente.
   journal: new FileJournal('C:\\meu-pdv\\estado\\00000000-AA000001.journal.json'),
+  fields: {
+    hooks: {
+      // Implementações da aplicação; true somente após concluir a obrigação.
+      storeReceipt: (receipt, context) => meusComprovantes.salvar(receipt, context),
+      loadReceipt: (reference, context) => meusComprovantes.carregar(reference, context),
+      printReceipt: (receipt, context) => minhaImpressora.imprimir(receipt, context),
+    },
+  },
   interaction: async (request, {signal}) => {
     // Sua tela recebe comando, TipoCampo, mínimo, máximo e buffer integral.
     // Implemente também o fallback explícito para novos comandos.
@@ -106,7 +116,9 @@ Não usar os parâmetros fictícios acima como configuração de produção.
 `amount` é texto decimal com duas casas; pode ser vazio quando o produto coleta
 o valor durante a operação. Nunca convertemos valores financeiros por float.
 `additionalParameters` é repassado integralmente na configuração, início e
-finalização. Parâmetros adicionais não usam uma lista fechada.
+finalização. Extensões permanecem abertas. Os seletores reservados de finalização
+usam `finalizePayment`, `finalizeNetwork` e `finalizeWithPayments`, que mantêm o
+journal coerente com o alcance da chamada nativa.
 
 ## Integração pelo nosso modal
 
@@ -137,15 +149,17 @@ pinpad e às rotinas específicas do fabricante.
   ou o SDK solicita cancelamento cooperativo. Não há aceitação silenciosa.
 - `cancel()`/`AbortSignal` enviam `Continua=-1` e continuam até o retorno terminal.
   Fechar o modal ou matar um processo não comprova desfazimento financeiro.
-- Retorno zero do ciclo e decisão fiscal são etapas separadas. Por padrão o
-  `transact` aguarda `finalize(true|false)`. Consultas não financeiras podem usar
-  `requiresFinalization:false` conscientemente, conforme a modalidade do fabricante.
+- Retorno zero do ciclo e decisão fiscal são etapas separadas. Funções financeiras
+  aguardam `finalize(true|false)`; consultas usam `runFunction(functionId)` sem criar
+  pagamento financeiro. Uma política conhecida não pode ser invertida; função nova
+  exige `requiresFinalization` explícito.
 - `FinalizaFuncaoSiTefInterativo` é `void`: `returned:true` atesta só que a chamada
   local retornou. A API não inventa confirmação bancária remota.
 - Antes da operação e da decisão, o SDK grava um journal mínimo com cupom/data/hora
-  originais. O journal não contém os campos coletados nem recibos. O escopo adicional
-  da finalização é persistido para impedir retomada com escopo diferente; não inclua
-  segredos nesse parâmetro. Desfazimentos seletivos usam os parâmetros do fabricante.
+  originais. O journal V2 contém o grupo, pagamentos, decisões, hashes e referências
+  de comprovantes; os corpos dos comprovantes não são gravados nele. NFPAG é salvo
+  por `storeFinalizationPayload` e restaurado por hash, fora do journal financeiro.
+  Não inclua segredos nos demais parâmetros adicionais.
 - Crash, timeout ou falha de persistência após entrar na DLL mantêm o estado incerto.
   Não há repetição automática de cobrança. Consulte `pendingCount`, modalidades
   130/131 e os procedimentos do produto antes de uma decisão de recuperação.
@@ -158,10 +172,18 @@ não removemos um lock automaticamente. Verifique que o processo anterior acabou
 inspecione o journal e consulte pendências antes de liberar o lock. `close()` não
 fecha sessão em execução ou aguardando decisão; cancele/decida primeiro.
 
-Nesta versão, o cliente simplificado gerencia uma operação pendente por vez.
-A coordenação de vários pagamentos TEF pendentes no mesmo cupom ainda exige um
-journal de lote e está fora do suporte de alto nível atual. Não confirme cada
-pagamento antes do fechamento fiscal para contornar esse limite.
+Para vários pagamentos, use `transact(input, {appendPayment:true})` após o primeiro.
+A finalização agrupa cada cupom/data, mantendo a hora original e persistindo o plano
+completo antes da primeira chamada nativa. `finalizePayment` seleciona o índice 161;
+`finalizeNetwork` exige rede resolvida para todos os pendentes. NFPAG anexa dados a
+um pagamento, mas finaliza todos os pagamentos do mesmo cupom/data, conforme o manual.
+Uma falha parcial preserva quais partições já retornaram localmente. A retomada
+executa somente o plano ainda pendente.
+
+`queryPendingTransactions()` (130) e a variante com `{fiscalDocument,fiscalDate}`
+(131) funcionam também durante recuperação, sem sobrescrever o journal financeiro.
+Journals V1 são migrados com obrigações externas desconhecidas; confirmação exige
+`attestLegacyObligations`, enquanto o desfazimento continua disponível.
 
 ## API avançada e cobertura
 

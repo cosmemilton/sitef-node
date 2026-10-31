@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {classifyReturn, getCommandInfo, CONTINUATION} from '../dist/index.js';
+import { classifyReturn, getCommandInfo, CONTINUATION } from '../dist/index.js';
 
 test('o mesmo retorno positivo tem semântica própria por função nativa', () => {
   assert.equal(classifyReturn(1, 'transaction').kind, 'authorizer-declined');
@@ -31,13 +31,20 @@ test('cancelamento e teclas do pinpad não seguem o domínio de transação', ()
   assert.equal(classifyReturn(0, 'pinpad-confirmation').kind, 'cancelled');
   assert.equal(classifyReturn(0, 'pinpad-presence').kind, 'absent');
   assert.equal(classifyReturn(13, 'pinpad-key').kind, 'key');
-  assert.equal(classifyReturn(-1, 'pinpad-presence').message, 'Biblioteca de acesso ao pinpad ausente');
-  assert.equal(classifyReturn(-1, 'transaction').message, 'Biblioteca ainda não configurada');
+  assert.equal(
+    classifyReturn(-1, 'pinpad-presence').message,
+    'Biblioteca de acesso ao pinpad ausente'
+  );
+  assert.equal(
+    classifyReturn(-1, 'transaction').message,
+    'Biblioteca ainda não configurada'
+  );
   assert.throws(() => classifyReturn(NaN), TypeError);
 });
 
 test('QR e polling continuam o laço sem esperar coleta humana', () => {
-  for (const command of [23, 50, 51, 52]) assert.equal(getCommandInfo(command).blocking, false);
+  for (const command of [23, 50, 51, 52])
+    assert.equal(getCommandInfo(command).blocking, false);
   assert.equal(getCommandInfo(29).kind, 'system-input');
   assert.equal(getCommandInfo(41).kind, 'masked-input');
   const future = getCommandInfo(99999);

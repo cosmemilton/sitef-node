@@ -1,6 +1,6 @@
 {
   "name": "@cosmemilton/sitef-ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Modal React opcional de interação CliSiTef com cosmemilton-ui",
   "type": "module",
   "license": "UNLICENSED",
@@ -15,7 +15,7 @@
     "check": "npm run build && npm test"
   },
   "peerDependencies": {
-    "@cosmemilton/sitef": "^0.1.0",
+    "@cosmemilton/sitef": "^0.2.0",
     "@iconify/react": ">=5",
     "cosmemilton-ui": "^4.1.0",
     "react": ">=18.2 <20",

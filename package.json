@@ -1,11 +1,11 @@
 {
   "name": "sitef-node-workspace",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "workspaces": ["packages/*"],
   "scripts": {
-    "build": "npm run build --workspace @cosmemilton/sitef && npm run build --workspace @cosmemilton/sitef-ui",
+    "build": "node scripts/sync-semantic-data.mjs && npm run build --workspace @cosmemilton/sitef && npm run build --workspace @cosmemilton/sitef-ui",
     "test": "node --test packages/core/test/*.test.mjs && npm test --workspace @cosmemilton/sitef-ui",
     "check": "npm run build && npm test",
     "build:native": "cargo build --manifest-path native/Cargo.toml",
