@@ -1,0 +1,16 @@
+node_modules/
+.build/
+work/
+dist/
+target/
+*.dll
+*.so
+*.dylib
+*.zip
+*.pdf
+*.ini
+.env*
+*.journal.json
+*.lock.tmp
+!Cargo.lock
+

@@ -1,0 +1,17 @@
+{
+  "name": "sitef-node-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "npm run build --workspace @cosmemilton/sitef && npm run build --workspace @cosmemilton/sitef-ui",
+    "test": "node --test packages/core/test/*.test.mjs && npm test --workspace @cosmemilton/sitef-ui",
+    "check": "npm run build && npm test",
+    "build:native": "cargo build --manifest-path native/Cargo.toml",
+    "test:native": "cargo test --manifest-path native/Cargo.toml",
+    "test:integration": "npm run build && cargo build --manifest-path native/Cargo.toml && node packages/core/test/native.integration.mjs"
+  },
+  "devDependencies": {"typescript": "^5.9.3", "@types/node": "^24.0.0"},
+  "engines": {"node": ">=22.18.0"}
+}

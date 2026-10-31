@@ -204,4 +204,3 @@ Clientes da mesma família: [Python](https://github.com/cosmemilton/sitef-python
 e [PHP](https://github.com/cosmemilton/sitef-php). A fonte canônica da ponte Rust é
 este repositório. Cada cliente conserva uma cópia dos fontes para build independente,
 com versão e hash registrados; as bibliotecas do fornecedor continuam externas.
-

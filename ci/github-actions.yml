@@ -1,0 +1,47 @@
+# Template: copy to .github/workflows/check.yml to enable in a repository.
+# Own code/fixtures only. No vendor DLL, manual, payment network or secrets.
+name: SDK and native contract
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install Rust stable
+        run: rustup toolchain install stable --profile minimal
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: TypeScript and own controller tests
+        run: npm run check
+      - name: Verify common catalog snapshot
+        run: node scripts/export-catalog.mjs --check
+      - name: Rust unit and own ABI fixtures
+        run: |
+          cargo +stable test --locked --manifest-path native/Cargo.toml
+          python3 native/tests/smoke.py
+          python3 native/tests/smoke_tcp.py
+      - name: SDK to Rust to own C fixture
+        run: node packages/core/test/native.integration.mjs
+  windows-x64-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install Rust x64 standard library
+        run: rustup toolchain install stable --profile minimal --target x86_64-pc-windows-msvc
+      - name: Compile Windows x64 helper without vendor libraries
+        run: cargo +stable build --locked --release --target x86_64-pc-windows-msvc --manifest-path native/Cargo.toml

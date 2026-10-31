@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-30",
+  "platform": "windows",
+  "architecture": "x86_64",
+  "helperTarget": "x86_64-pc-windows-msvc",
+  "runtimeTarget": "windows-x64-only",
+  "nativeLibrarySuppliedByIntegrator": true,
+  "nativeLibraryDistributedWithProject": false,
+  "environment": "CliSiTef Simulado Win64",
+  "documentationBasis": "VRS-258 and Wallets 1.43 PDFs from the original Win32 ZIP only; no x64 PDF consulted",
+  "libraryVersion": "7.0.117.111S.r2",
+  "interfaceVersion": "",
+  "checks": {
+    "load": "passed",
+    "capabilities": "24 SDK symbols exported; 21 callable bridge methods",
+    "versionStatus": 0,
+    "configurationStatus": 0,
+    "helperExitCode": 0,
+    "liveNodeStdio": "response received while stdin remained open",
+    "wrongArchitectureRejectedBeforeLoad": "Win32 DLL rejected with WRONG_LIBRARY_ARCHITECTURE",
+    "publicSdkCreateSitef": "Windows x64 Node: configured, idle, normal close; zero transactions"
+  },
+  "financialTransactionsExecuted": 0,
+  "pinpadOperationsExecuted": 0,
+  "homologationComplete": false,
+  "notes": [
+    "Only load, capabilities, version and configuration were requested from the real simulator library.",
+    "The direct pinpadInfo wrapper is deliberately blocked (UNVERIFIED_OUTPUT_BOUND); exported-symbol availability does not mean every entrypoint is callable.",
+    "configureEx and readChipEx are export variants with callable false and invocationMethod pointing to configure and readChip; they are not separate public methods.",
+    "The x64 binary is older than the source documentation; all 24 SDK entrypoints were present but this does not establish support for every newer documented feature.",
+    "No transaction approval, denial, reversal, finalization, device cancellation or crash recovery was validated against the vendor simulator."
+  ]
+}

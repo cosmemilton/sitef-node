@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "inspection": "static ZIP, PE headers, imports, exports and version resources only",
+  "supportedRuntime": {
+    "os": "Windows",
+    "architecture": "x64",
+    "callingConvention": "Windows x64 system ABI",
+    "shortBits": 16,
+    "intBits": 32,
+    "longBits": 32,
+    "pointerBits": 64
+  },
+  "protocolReferences": {
+    "originKitArchitecture": "x86",
+    "interfaceRevision": 258,
+    "walletsRevision": "1.43",
+    "x64BundledPdfsOpened": false,
+    "x64BundledPdfsExtracted": false
+  },
+  "runtimePackage": {
+    "archiveName": "clisitefwin64_simulado.zip",
+    "archiveSha256": "8d9224efa0ed33cfe4924f1e9ec4a0160b8718ec98da859d22e178ae73456b84",
+    "nestedArchiveName": "clisitef-7.0.117.111.r2-Simulado-Win64.zip",
+    "interfaceLibrary": "CliSiTef64I.dll",
+    "files": [
+      {
+        "name": "CliSiTef64I.dll",
+        "bytes": 39293440,
+        "sha256": "fbce4f96eab8789ff8cf4aa39f45a657d72261f6c21b3cd1cbbd8b35750d6dbb",
+        "architecture": "x64",
+        "peFormat": "PE32+",
+        "machine": "0x8664",
+        "fileVersion": "7.0.117.111S",
+        "productVersion": "7.0.117.111S",
+        "imports": [
+          "ADVAPI32.dll",
+          "KERNEL32.dll",
+          "SETUPAPI.dll",
+          "USER32.dll",
+          "WS2_32.dll",
+          "WTSAPI32.dll"
+        ],
+        "exportCount": 418
+      },
+      {
+        "name": "libcurl64.dll",
+        "bytes": 547840,
+        "sha256": "9e4aa845a796688e28f42ccb279a5695dc9857702a6554e9cc6ee1fcbc75094f",
+        "architecture": "x64",
+        "peFormat": "PE32+",
+        "machine": "0x8664",
+        "fileVersion": "7.70.0",
+        "productVersion": "7.70.0",
+        "imports": [
+          "ADVAPI32.dll",
+          "CRYPT32.dll",
+          "KERNEL32.dll",
+          "Normaliz.dll",
+          "WLDAP32.dll",
+          "WS2_32.dll"
+        ],
+        "exportCount": 82
+      },
+      {
+        "name": "libemv64.dll",
+        "bytes": 403968,
+        "sha256": "353a09c9af3d63ee933011d91cef747b525c3d728b4445aec388899bfdbea493",
+        "architecture": "x64",
+        "peFormat": "PE32+",
+        "machine": "0x8664",
+        "fileVersion": "6.1.2.38S",
+        "productVersion": "6.1.2.38S",
+        "imports": [
+          "KERNEL32.dll",
+          "MSVCR90.dll"
+        ],
+        "exportCount": 20
+      },
+      {
+        "name": "QREncode64.dll",
+        "bytes": 121344,
+        "sha256": "85b2026c1408e5c5e7dd303f45cacb9bd7b4a74e5096841f9be9c0186c31e794",
+        "architecture": "x64",
+        "peFormat": "PE32+",
+        "machine": "0x8664",
+        "fileVersion": null,
+        "productVersion": null,
+        "imports": [
+          "KERNEL32.dll"
+        ],
+        "exportCount": 41
+      }
+    ]
+  },
+  "bridgeSymbolCoverage": {
+    "listed": 24,
+    "present": 24,
+    "symbols": [
+      {
+        "method": "configure",
+        "symbol": "ConfiguraIntSiTefInterativo",
+        "exportPresent": true
+      },
+      {
+        "method": "configureEx",
+        "symbol": "ConfiguraIntSiTefInterativoEx",
+        "exportPresent": true
+      },
+      {
+        "method": "start",
+        "symbol": "IniciaFuncaoSiTefInterativo",
+        "exportPresent": true
+      },
+      {
+        "method": "continue",
+        "symbol": "ContinuaFuncaoSiTefInterativo",
+        "exportPresent": true
+      },
+      {
+        "method": "finish",
+        "symbol": "FinalizaFuncaoSiTefInterativo",
+        "exportPresent": true
+      },
+      {
+        "method": "version",
+        "symbol": "ObtemVersao",
+        "exportPresent": true
+      },
+      {
+        "method": "pendingCount",
+        "symbol": "ObtemQuantidadeTransacoesPendentes",
+        "exportPresent": true
+      },
+      {
+        "method": "flushMessages",
+        "symbol": "DescarregaMensagens",
+        "exportPresent": true
+      },
+      {
+        "method": "pinpadPresent",
+        "symbol": "VerificaPresencaPinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "pinpadKeepAlive",
+        "symbol": "KeepAlivePinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "pinpadKey",
+        "symbol": "LeTeclaPinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "pinpadPermanentMessage",
+        "symbol": "EscreveMensagemPermanentePinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "pinpadMessage",
+        "symbol": "EscreveMensagemPinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "pinpadYesNo",
+        "symbol": "LeSimNaoPinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "pinpadInfo",
+        "symbol": "ObtemInformacoesPinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "validateBarcode",
+        "symbol": "ValidaCampoCodigoEmBarras",
+        "exportPresent": true
+      },
+      {
+        "method": "removeCard",
+        "symbol": "RemoveCartaoPinPad",
+        "exportPresent": true
+      },
+      {
+        "method": "startBanking",
+        "symbol": "CorrespondenteBancarioSiTefInterativo",
+        "exportPresent": true
+      },
+      {
+        "method": "readSecureCard",
+        "symbol": "LeCartaoSeguro",
+        "exportPresent": true
+      },
+      {
+        "method": "readTrack3",
+        "symbol": "LeTrilha3",
+        "exportPresent": true
+      },
+      {
+        "method": "readPassword",
+        "symbol": "LeSenhaInterativo",
+        "exportPresent": true
+      },
+      {
+        "method": "readPasswordDirect",
+        "symbol": "LeSenhaDireto",
+        "exportPresent": true
+      },
+      {
+        "method": "readChip",
+        "symbol": "LeTrilhaChipInterativo",
+        "exportPresent": true
+      },
+      {
+        "method": "readChipEx",
+        "symbol": "LeTrilhaChipInterativoEx",
+        "exportPresent": true
+      }
+    ]
+  },
+  "fallbackPolicy": {
+    "configuration": "Use basic configuration only when extended export is absent and additionalParameters is empty; otherwise return MISSING_SYMBOL.",
+    "chipRead": "Use basic chip reader only when extended export is absent and additionalParameters is empty; otherwise return MISSING_SYMBOL.",
+    "absentExportFallbackExercisedByThisInventory": false
+  },
+  "historicalNameComparison": {
+    "x86RuntimeSupported": false,
+    "x86NormalizedExportCount": 428,
+    "x64NormalizedExportCount": 418,
+    "x86OnlyNames": [
+      "ConfiguraIntSiTefInterativoCdecl",
+      "ContinuaFuncaoSiTefInterativoCdecl",
+      "EfetuaPagamentoAASiTefInterativo",
+      "EfetuaPagamentoAASiTefInterativoA",
+      "EfetuaPagamentoSiTefInterativoA",
+      "EscreveMensagemPermanentePinPadCdecl",
+      "FinalizaTransacaoSiTefInterativoCdecl",
+      "IniciaFuncaoSiTefInterativoCdecl",
+      "ObtemQuantidadeTransacoesPendentesCdecl",
+      "VerificaPresencaPinPadCdecl"
+    ],
+    "x64OnlyNames": [],
+    "missingCurrentBridgeSymbols": []
+  },
+  "limitations": [
+    "Presence of an export does not verify its ABI, behavior, transaction modalities, parameters or field semantics.",
+    "Protocol documentation and runtime are from different revisions; unknown native fields and returns must be preserved.",
+    "No transaction or pinpad operation was performed by this static inspection.",
+    "Vendor binaries, manuals and source code are excluded from the project."
+  ]
+}
