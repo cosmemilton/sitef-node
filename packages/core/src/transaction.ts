@@ -145,11 +145,7 @@ export class ClientSitef {
     client = new ClientSitef(core, defaults);
     try {
       if (options.initialPinpadMessage !== undefined) {
-        const result = await core.callNative<{ status: number }>('pinpadPermanentMessage', {
-          message: options.initialPinpadMessage
-        });
-        if (!Number.isInteger(result.status))
-          throw new SitefError('INVALID_NATIVE_RESULT', 'Invalid pinpad message status.');
+        const result = await client.escreverMensagemPinpad(options.initialPinpadMessage);
         if (result.status !== 0)
           throw new SitefError('PINPAD_MESSAGE_FAILED', 'Initial pinpad message was not accepted.', { nativeStatus: result.status });
       }
@@ -166,6 +162,20 @@ export class ClientSitef {
   createTransaction(input: ClientTransactionInput, options: TransactionOptions = {}): Transaction {
     if (this.#core.state === 'closed') throw new SitefError('SESSION_CLOSED', 'Client is closed.');
     return new Transaction(this, input, options);
+  }
+  /** Writes the permanent pinpad message while idle; preserves the native status, including nonzero returns. */
+  async escreverMensagemPinpad(message: string): Promise<{ status: number }> {
+    if (typeof message !== 'string' || message.includes('\0'))
+      throw new SitefError('INVALID_ARGUMENT', 'Pinpad message must be text without NUL.');
+    if (this.#active)
+      throw new SitefError('SESSION_BUSY', 'Pinpad message is unavailable during a transaction.');
+    if (this.#core.state === 'uncertain')
+      throw new SitefError('RECONNECT_REQUIRED',
+        'Session is uncertain. Preserve recovery data and reconcile before writing a pinpad message.', { uncertain: true });
+    const result = await this.#core.callNative<{ status: number }>('pinpadPermanentMessage', { message });
+    if (!result || !Number.isInteger(result.status))
+      throw new SitefError('INVALID_NATIVE_RESULT', 'Invalid pinpad message status.');
+    return result;
   }
   capabilities(): ReturnType<SitefClient['capabilities']> { return this.#core.capabilities(); }
   callNative<T = Record<string, unknown>>(method: string, params: Record<string, unknown> = {}): Promise<T> {

@@ -22,8 +22,8 @@ const MAX_BUFFER: usize = 1024 * 1024;
 const CONTINUE: i32 = 10_000;
 
 // The VRS-258 manual specifies long* for TipoCampo. C long is 32-bit on
-// Windows x64. Unix is used only for our explicitly selected synthetic ABI
-// fixtures; it is not a production runtime target.
+// Windows x64 and Linux i686. Linux x64 uses 64-bit long and remains
+// synthetic-test only. extern "system" maps to the C ABI on Linux.
 type Configure = unsafe extern "system" fn(*const c_char, *const c_char, *const c_char, i16) -> i32;
 type ConfigureEx = unsafe extern "system" fn(*const c_char, *const c_char, *const c_char, i16, *const c_char) -> i32;
 type Start = unsafe extern "system" fn(i32, *const c_char, *const c_char, *const c_char, *const c_char, *const c_char, *const c_char) -> i32;
@@ -140,7 +140,7 @@ impl Host {
             };
             functions.insert(method.into(), json!({"symbol":name,"available":available,"callable":callable,"invocationMethod":invocation_method}));
         }
-        json!({"protocolVersion":1,"bridgeVersion":env!("CARGO_PKG_VERSION"),"platform":std::env::consts::OS,"architecture":std::env::consts::ARCH,"runtimeTarget":"windows-x64","nativeEncoding":self.encoding.name(),"fieldTypeBytes":std::mem::size_of::<c_long>(),"testMode":self.test_mode,"minimumBufferSize":MIN_BUFFER,"functions":functions})
+        json!({"protocolVersion":1,"bridgeVersion":env!("CARGO_PKG_VERSION"),"platform":std::env::consts::OS,"architecture":std::env::consts::ARCH,"runtimeTarget":runtime_target(),"nativeEncoding":self.encoding.name(),"fieldTypeBytes":std::mem::size_of::<c_long>(),"testMode":self.test_mode,"minimumBufferSize":MIN_BUFFER,"functions":functions})
     }
     fn call(&mut self, method: &str, params: Value) -> Result<Value> {
         match method {
@@ -393,8 +393,8 @@ fn parse<T:serde::de::DeserializeOwned>(v:Value)->Result<T> {serde_json::from_va
 
 fn load(params:Value)->Result<Host> {
     let p:LoadParams = parse(params)?;
-    #[cfg(not(windows))]
-    if !p.test_mode {return fail("UNSUPPORTED_PLATFORM","Production runtime is Windows x64 only; non-Windows hosts permit explicit testMode synthetic fixtures only");}
+    #[cfg(not(any(windows, all(target_os="linux", target_arch="x86"))))]
+    if !p.test_mode {return fail("UNSUPPORTED_PLATFORM","Vendor runtime requires Windows x64 or Linux i686; other hosts permit explicit testMode synthetic fixtures only");}
     let path = Path::new(&p.library_path);
     if !path.is_absolute() {return fail("INVALID_LIBRARY_PATH","libraryPath must be absolute");}
     let path = path.canonicalize().map_err(|_|BridgeError {code:"LIBRARY_NOT_FOUND",message:"Native library does not exist or is not accessible"})?;
@@ -402,7 +402,11 @@ fn load(params:Value)->Result<Host> {
     #[cfg(windows)]
     verify_x64_library(&path)?;
     let filename = path.file_name().and_then(|s|s.to_str()).unwrap_or("").to_ascii_lowercase();
-    if matches!(filename.as_str(),"clisitef.dll"|"clisitef32.dll"|"clisitef64.dll"|"libclisitef.so") {return fail("INVALID_LIBRARY_PATH","Load the CliSiTefI interface library, not the internal CliSiTef library");}
+    if matches!(filename.as_str(),"clisitef.dll"|"clisitef32.dll"|"clisitef64.dll") {return fail("INVALID_LIBRARY_PATH","Load the CliSiTefI interface library, not the internal CliSiTef library");}
+    #[cfg(all(target_os="linux",target_arch="x86"))]
+    if !p.test_mode {
+        verify_linux_ia32_library(&path)?;
+    }
     let directory = match p.working_directory {
         Some(ref s) => {let d=Path::new(s); if !d.is_absolute() {return fail("INVALID_WORKING_DIRECTORY","workingDirectory must be absolute");} d.canonicalize().map_err(|_|BridgeError {code:"INVALID_WORKING_DIRECTORY",message:"workingDirectory is not accessible"})?},
         None => path.parent().ok_or(BridgeError {code:"INVALID_LIBRARY_PATH",message:"Native library must have a parent directory"})?.to_path_buf(),
@@ -420,6 +424,34 @@ fn load(params:Value)->Result<Host> {
     if unsafe {symbol::<Configure>(&library,"ConfiguraIntSiTefInterativo",16)}.is_none() && unsafe {symbol::<ConfigureEx>(&library,"ConfiguraIntSiTefInterativoEx",20)}.is_none() {return fail("MISSING_SYMBOL","Interface library does not export a configuration function");}
     std::env::set_current_dir(&directory).map_err(|_|BridgeError {code:"INVALID_WORKING_DIRECTORY",message:"Cannot enter workingDirectory"})?;
     Ok(Host {library,encoding:p.native_encoding,configured:false,active:false,state:LoopState::default(),test_mode:p.test_mode})
+}
+
+fn runtime_target()->&'static str {
+    if cfg!(all(windows,target_arch="x86_64")) {"windows-x64"}
+    else if cfg!(all(target_os="linux",target_arch="x86")) {"linux-ia32"}
+    else {"synthetic-test"}
+}
+
+#[cfg(any(all(target_os="linux",target_arch="x86"),test))]
+fn validate_linux_ia32_header(header:&[u8])->Result<()> {
+    if header.len()<52 || &header[..4]!=b"\x7fELF" || header[6]!=1 {
+        return fail("INVALID_LIBRARY_FORMAT","Native library must have a complete ELF header");
+    }
+    if header[4]!=1 || header[5]!=1 || u16::from_le_bytes([header[18],header[19]])!=3 {
+        return fail("WRONG_LIBRARY_ARCHITECTURE","Linux native library must target ELF32 little-endian Intel 386");
+    }
+    if u16::from_le_bytes([header[16],header[17]])!=3 || u32::from_le_bytes(header[20..24].try_into().unwrap())!=1 || u16::from_le_bytes([header[40],header[41]])!=52 {
+        return fail("INVALID_LIBRARY_FORMAT","Native library must be an ELF32 shared object");
+    }
+    Ok(())
+}
+
+#[cfg(all(target_os="linux",target_arch="x86"))]
+fn verify_linux_ia32_library(path:&Path)->Result<()> {
+    let mut header=[0u8;52];
+    std::fs::File::open(path).and_then(|mut file|file.read_exact(&mut header))
+        .map_err(|_|BridgeError{code:"INVALID_LIBRARY_FORMAT",message:"Cannot read complete native ELF header"})?;
+    validate_linux_ia32_header(&header)
 }
 
 #[cfg(any(windows,test))]
@@ -574,6 +606,27 @@ mod tests {
         pe[4..6].copy_from_slice(&0xaa64u16.to_le_bytes());
         assert!(validate_pe_headers(&dos,&pe).is_err());
         assert!(validate_pe_headers(&[],&[]).is_err());
+    }
+    #[test] fn linux_library_requires_elf32_little_endian_i386_shared_object() {
+        let mut h=[0u8;52];h[..4].copy_from_slice(b"\x7fELF");
+        h[4]=1;h[5]=1;h[6]=1;h[16]=3;h[18]=3;h[20]=1;h[40]=52;
+        assert!(validate_linux_ia32_header(&h).is_ok());
+        for (index,value) in [(4,2),(5,2),(18,62),(18,40)] {
+            let mut bad=h;bad[index]=value;
+            assert!(matches!(validate_linux_ia32_header(&bad),Err(BridgeError{code:"WRONG_LIBRARY_ARCHITECTURE",..})));
+        }
+        for (index,value) in [(0,0),(6,0),(16,2),(20,0),(40,0)] {
+            let mut bad=h;bad[index]=value;
+            assert!(matches!(validate_linux_ia32_header(&bad),Err(BridgeError{code:"INVALID_LIBRARY_FORMAT",..})));
+        }
+        assert!(validate_linux_ia32_header(&h[..20]).is_err());
+    }
+    #[test] fn runtime_target_matches_compiled_abi() {
+        if cfg!(all(target_os="linux",target_arch="x86")) {
+            assert_eq!(runtime_target(),"linux-ia32");
+            assert_eq!(std::mem::size_of::<c_long>(),4);
+        } else if cfg!(windows) {assert_eq!(runtime_target(),"windows-x64");}
+        else {assert_eq!(runtime_target(),"synthetic-test");}
     }
     #[test] fn tcp_arguments_restrict_address_and_require_both_options() {
         let args=|values:&[&str]|values.iter().map(|s|s.to_string()).collect::<Vec<_>>();

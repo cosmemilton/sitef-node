@@ -4,7 +4,7 @@
 - Não copiar nem distribuir código Delphi, código de integrações terceiras,
   bibliotecas, certificados, INIs ou PDFs do fornecedor.
 - Bibliotecas nativas são fornecidas pelo integrador e carregadas por caminho absoluto.
-- Runtime suportado exclusivamente Windows x64. PDFs de referência são somente os do kit x86 mais recente; não usar PDFs do kit x64.
+- Alvos de runtime: Windows x64 com interface x64 e Linux glibc i686 com libclisitef.so ELF32, em processo isolado (Node x64 ou ia32 no Linux). Não assumir ABI Linux x64, ARM ou musl. PDFs de referência são somente os do kit x86 mais recente; não usar PDFs do kit x64.
 - Nunca usar CmAlert ou componentes similares para notificações. Usar CmToast/CmToastNotice.
 - Reutilizar componentes compartilhados e tokens cosmemilton-ui; verificar temas claro/escuro.
 - Preservar teclado, leitura e espaço em desktop/celular. Agrupar ações relacionadas quando adequado.

@@ -2,35 +2,37 @@
 
 SDK TypeScript para integrar uma automação Node.js à interface CliSiTef, com uma ponte Rust em processo separado e decisões financeiras explícitas.
 
-**Runtime: Windows x64. Sem homologação financeira.** A versão 0.3.0 está preparada para publicação no npm. Esta documentação não comprova publicação nem aprovação para uso em produção. O código próprio é distribuído sob a licença [MIT](LICENSE); os dois pacotes npm têm acesso público configurado.
+**Versão 0.4.0. Windows x64 e Linux glibc com bridge i686; sem homologação financeira.** A versão anterior 0.3.0 (Windows x64, ponte manual) foi publicada em 2026-11-08: [core](https://www.npmjs.com/package/@cosmemilton/sitef/v/0.3.0) e [UI](https://www.npmjs.com/package/@cosmemilton/sitef-ui/v/0.3.0), ambos públicos. O código próprio é distribuído sob a licença [MIT](LICENSE). Publicação não significa aprovação para uso em produção ou homologação.
 
 ## Componentes e requisitos
 
 - `@cosmemilton/sitef`: cliente, transações, callbacks, campos e snapshots, sem dependência de React.
 - `@cosmemilton/sitef-ui`: modal React opcional, integrado a `cosmemilton-ui`. Veja [a documentação do modal](packages/ui/README.md).
-- `native/`: fontes da ponte Rust `sitef-bridge.exe`. O executável deve ser compilado e provisionado separadamente; não acompanha o pacote npm.
+- `@cosmemilton/sitef-bridge-win32-x64` e `@cosmemilton/sitef-bridge-linux-ia32`: novos pacotes opcionais da 0.4.0, contendo somente a ponte própria da plataforma.
+- `native/`: fontes Rust comuns das duas pontes; compilação manual continua disponível.
 
-Use Node.js **>=22.18.0**, Windows x64, a ponte x64 e a **biblioteca de interface x64** fornecida pelo integrador, como `CliSiTef64I.dll`. A DLL interna `CliSiTef.dll` não substitui essa interface. Caminhos da ponte, biblioteca e diretórios operacionais são explícitos.
+Use Node.js **>=22.18.0**. No Windows, use Node x64, ponte x64 e a **biblioteca de interface x64** fornecida pelo integrador, como `CliSiTef64I.dll`; a DLL interna `CliSiTef.dll` não substitui essa interface. No Linux glibc, Node x64 ou ia32 usa uma ponte **i686** separada para `libclisitef.so` ELF32. A arquitetura da ponte segue a biblioteca, não necessariamente o processo Node. A 0.4.0 resolve a ponte pelo pacote opcional; caminhos explícitos continuam tendo prioridade.
 
-DLLs, INIs, certificados, chaves e manuais proprietários não são distribuídos nem baixados automaticamente. WSL/Linux serve ao desenvolvimento e aos testes sintéticos, não à execução de uma biblioteca SiTef de produção.
+DLLs, SOs, INIs, certificados, chaves e manuais proprietários não são distribuídos nem baixados automaticamente. O integrador fornece seu kit autorizado e seus diretórios operacionais. O suporte Linux desta frente não constitui homologação financeira nem valida outras ABIs.
+
+Para começar sem depender dos exemplos Windows, veja o **[guia de distribuição e inicialização Windows/Linux](docs/bridge-distribution.md)**: instalação npm ou local, requisitos i686, configuração, fallback manual e Electron.
 
 ## Instalação npm
 
-Após a versão estar disponível no registro, instale o core na aplicação Node:
+Instale o core com dependências opcionais habilitadas. O npm seleciona a ponte compatível com a plataforma:
 
 ```sh
-npm install @cosmemilton/sitef@0.3.0
+npm install @cosmemilton/sitef@0.4.0
 ```
 
 ```js
 import { ClientSitef } from '@cosmemilton/sitef';
 ```
 
-O pacote fornece a API JavaScript/TypeScript, não um runtime SiTef pronto.
-Provisione a ponte própria e o kit autorizado do fornecedor separadamente.
+A ponte própria é uma dependência opcional por plataforma, sem compilação durante a instalação. O kit autorizado do fornecedor continua sendo provisionado separadamente. Para testar antes da disponibilidade no registro, use os tarballs locais descritos no guia de distribuição.
 Para a UI React opcional e suas dependências peer, veja o
 [quickstart do modal](packages/ui/README.md#instalação).
-Os comandos acima descrevem o consumo da release, não comprovam sua publicação.
+O [registro da release](docs/releasing.md#release-030-publicada-em-2026-11-08) identifica o commit e as verificações dos artefatos publicados.
 
 ## Referência principal: exemplo simples Windows
 
@@ -53,11 +55,10 @@ npm ci --ignore-scripts
 npm run build
 ```
 
-Compile a ponte conforme [native/README.md](native/README.md). No layout padrão do exemplo:
+No checkout de desenvolvimento, o build de debug prepara a dependência local da bridge a partir do pacote staged. Se estiver preparando um checkout novo, compile a ponte conforme [native/README.md](native/README.md) e execute o staging descrito em [distribuição](docs/bridge-distribution.md). Não copie o executável para o diretório operacional do exemplo simples. O layout do kit permanece:
 
 ```text
 %USERPROFILE%\Documents\SiTefDevelopment\
-  sitef-bridge.exe
   runtime\7.0.117.123.r2-win64\
     CliSiTef64I.dll
     [demais arquivos autorizados do kit do integrador]
@@ -68,6 +69,7 @@ Compile a ponte conforme [native/README.md](native/README.md). No layout padrão
 No PowerShell, na raiz do checkout, usando **Node Windows x64**:
 
 ```powershell
+node .\scripts\build-debug.mjs
 node .\examples\windows-simple.mjs
 ```
 
@@ -75,17 +77,21 @@ O exemplo simples **não aceita opções**: não há `--help`, `--verificar`, `-
 
 ### Inicialização, uma vez
 
-Trecho literal do exemplo:
+Opções principais do exemplo (hooks omitidos neste trecho):
 
 ```js
-connection = cliConnection({ root, directory, configuration, io,
-  createTransport, onStateChange: state.onStateChange });
-// A DLL e carregada/configurada aqui, uma vez, antes do primeiro menu.
-client = await ClientSitef.create({ ...connection.options,
-  initialPinpadMessage: env.SITEF_PINPAD_MESSAGE });
+client = await ClientSitef.create({
+  libraryPath: join(directory, 'CliSiTef64I.dll'),
+  workingDirectory: directory,
+  configuration,
+  callbacks,
+  onStateChange: state.onStateChange,
+  initialPinpadMessage: pinpadMessage,
+  // O exemplo completo acrescenta os hooks de recursos e comprovantes.
+});
 ```
 
-`cliConnection` monta os caminhos absolutos, a configuração e os hooks usados pelo exemplo. `createCallbacks(io)` implementa a interação de terminal. Na sua aplicação, forneça essas opções diretamente a `ClientSitef.create` e substitua os callbacks pela sua interface. Importe a API pública de `@cosmemilton/sitef`; o exemplo importa `packages/core/dist/index.js` porque roda dentro do checkout.
+O componente seleciona automaticamente a bridge instalada para Windows x64; o exemplo não informa caminho de executável. `createCallbacks(io)` implementa a interação de terminal. Na sua aplicação, forneça essas opções diretamente a `ClientSitef.create` e substitua os callbacks pela sua interface. Importe a API pública de `@cosmemilton/sitef`; o exemplo importa `packages/core/dist/index.js` porque roda dentro do checkout.
 
 ### Uma transação por operação
 
@@ -127,13 +133,15 @@ O menu gerencial 110 exige revisão específica e não recebe finalização gen�
 
 A função nativa de finalização é `void`: retorno local não comprova confirmação bancária remota. Não confirme em `finally`, não repita operações incertas e não transforme um retorno desconhecido em sucesso.
 
+Após cada tentativa concluída, o exemplo chama `client.escreverMensagemPinpad(pinpadMessage)` com a mesma mensagem usada na criação. Sessão ativa ou incerta impede a chamada; erros auxiliares nunca substituem um erro anterior da transação. Veja [a política completa](docs/windows-simple.md#mensagem-permanente-do-pinpad).
+
 ### Encerramento e pendências
 
 No bloco de limpeza, o exemplo contém:
 
 ```js
 if (client) await client.close();
-else if (failure?.cleanupFailed) await connection?.closeTransport();
+else if (failure?.cleanupFailed) await rawTransport?.close();
 ```
 
 Esse trecho está dentro de tratamento de erro; a implementação completa também libera referências, fecha o registro de metadados e remove o listener de Ctrl+C. Consulte o arquivo antes de adaptar sua limpeza. **Não há confirmação nem desfazimento no encerramento.**
@@ -159,7 +167,7 @@ A aplicação controla persistência durável, restauração e reconciliação. 
 - [Semântica e obrigações por produto](docs/semantic-flows.md)
 - [Arquitetura](docs/architecture.md) e [protocolo da ponte](docs/bridge-protocol.md)
 - [Cobertura do protocolo](docs/protocol-coverage.md) e [estado da implementação](docs/implementation-status.md)
-- [Validação](docs/validation.md), [preparação da publicação](docs/releasing.md) e [changelog](CHANGELOG.md)
+- [Validação](docs/validation.md), [releases npm](docs/releasing.md) e [changelog](CHANGELOG.md)
 
 A API anterior `SitefClient`/`createSitef` permanece disponível. Consultas, seletores fiscais e recuperação explícita também podem ser acessados por `client.advanced`; consulte os guias antes de migrar suas políticas de persistência e finalização.
 
@@ -174,7 +182,7 @@ python3 native/tests/smoke.py
 npm run test:integration
 ```
 
-Os testes nativos usam fixtures C próprias. Não são homologação, não validam uma ABI Linux de produção e não autorizam executar uma operação financeira. O template em [ci/](ci/README.md) não significa que uma execução de CI tenha ocorrido.
+Os testes nativos usam fixtures C próprias. Não são homologação, não validam todas as versões da ABI do fornecedor e não autorizam executar uma operação financeira. A configuração em [ci/](ci/README.md) não significa que uma execução remota de CI tenha ocorrido.
 
 ## Origem e licença
 

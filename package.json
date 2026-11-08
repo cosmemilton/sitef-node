@@ -1,10 +1,11 @@
 {
   "name": "sitef-node-workspace",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/core",
+    "packages/ui"
   ],
   "scripts": {
     "cli:windows": "node examples/windows-cli.mjs",
@@ -15,8 +16,12 @@
     "build:native": "cargo build --manifest-path native/Cargo.toml",
     "test:native": "cargo test --manifest-path native/Cargo.toml",
     "test:integration": "npm run build && cargo build --manifest-path native/Cargo.toml && node packages/core/test/native.integration.mjs",
-    "test:packaging": "node --test scripts/test/packaging.test.mjs",
-    "pack:check": "npm pack --dry-run --workspace @cosmemilton/sitef && npm pack --dry-run --workspace @cosmemilton/sitef-ui"
+    "test:packaging": "node --test scripts/test/*.test.mjs",
+    "pack:check": "npm pack --dry-run --workspace @cosmemilton/sitef && npm pack --dry-run --workspace @cosmemilton/sitef-ui",
+    "stage:bridge": "node scripts/bridge-package.mjs stage",
+    "pack:bridge:linux": "npm pack ./packages/bridge-linux-ia32",
+    "pack:bridge:windows": "npm pack ./packages/bridge-win32-x64",
+    "test:bridge-consumer": "node scripts/test-bridge-consumer.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

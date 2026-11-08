@@ -45,7 +45,7 @@ if not linker.is_file():
 environment = os.environ.copy()
 environment['CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER'] = str(linker)
 flags = environment.get('CARGO_ENCODED_RUSTFLAGS', '').split('\x1f') if environment.get('CARGO_ENCODED_RUSTFLAGS') else shlex.split(environment.get('RUSTFLAGS', ''))
-flags += ['-Ctarget-feature=+crt-static', '-Lnative=' + str(imports)]
+flags += ['-Ctarget-feature=+crt-static', '-Lnative=' + str(imports), '--remap-path-prefix=' + str(root) + '=/sitef', '--remap-path-prefix=' + str(Path.home()) + '=/build-home']
 environment['CARGO_ENCODED_RUSTFLAGS'] = '\x1f'.join(flags)
 subprocess.run(['cargo', 'build', '--locked', '--release', '--target', target], cwd=root / 'native', env=environment, check=True)
 print(root / 'native/target' / target / 'release/sitef-bridge.exe')

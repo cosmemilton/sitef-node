@@ -1,18 +1,26 @@
 """Exercise the real Rust process against an original, synthetic Linux C ABI.
-No vendor library is used. testMode is deliberate and never grants a non-Windows production runtime.
+No vendor library is used. Optional SITEF_SMOKE_TARGET=i686-unknown-linux-gnu exercises the Linux32 contract.
 """
 import base64
 import json
+import os
+import shlex
 from pathlib import Path
 import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-subprocess.run(["cargo", "build", "--manifest-path", str(ROOT / "Cargo.toml")], check=True)
+target = os.environ.get("SITEF_SMOKE_TARGET")
+target_args = ["--target", target] if target else []
+subprocess.run(["cargo", "build", "--manifest-path", str(ROOT / "Cargo.toml"), *target_args], check=True)
+bridge = ROOT / "target" / (target or "") / "debug/sitef-bridge"
+runner = shlex.split(os.environ.get("SITEF_SMOKE_RUNNER", ""))
+compiler = shlex.split(os.environ.get("SITEF_SMOKE_CC", "cc"))
+is_i686 = target == "i686-unknown-linux-gnu"
 with tempfile.TemporaryDirectory(prefix="sitef-abi-test-") as directory:
     shared = Path(directory) / "libfixture.so"
-    subprocess.run(["cc", "-shared", "-fPIC", "-Wall", "-Wextra", "-Werror", str(ROOT / "tests/fixture.c"), "-o", str(shared)], check=True)
-    process = subprocess.Popen([str(ROOT / "target/debug/sitef-bridge")], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
+    subprocess.run([*compiler, "-shared", "-fPIC", "-Wall", "-Wextra", "-Werror", str(ROOT / "tests/fixture.c"), "-o", str(shared)], check=True)
+    process = subprocess.Popen([*runner, str(bridge)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
     sequence = 0
     def request(method, params=None):
         global sequence
@@ -28,10 +36,19 @@ with tempfile.TemporaryDirectory(prefix="sitef-abi-test-") as directory:
         return response["result"]
 
     assert request("capabilities")["error"]["code"] == "NOT_LOADED"
-    assert request("load", {"libraryPath":str(shared)})["error"]["code"] == "UNSUPPORTED_PLATFORM"
-    capabilities = result("load", {"libraryPath":str(shared),"testMode":True,"nativeEncoding":"windows-1252"})
+    if is_i686:
+        invalid = Path(directory) / "invalid.so"
+        invalid.write_bytes(b"not an ELF")
+        assert request("load", {"libraryPath":str(invalid)})["error"]["code"] == "INVALID_LIBRARY_FORMAT"
+    else:
+        assert request("load", {"libraryPath":str(shared)})["error"]["code"] == "UNSUPPORTED_PLATFORM"
+    capabilities = result("load", {"libraryPath":str(shared),"testMode":not is_i686,"nativeEncoding":"windows-1252"})
     assert capabilities["minimumBufferSize"] == 20000
-    assert capabilities["testMode"] is True
+    assert capabilities["testMode"] is (not is_i686)
+    if is_i686:
+        assert capabilities["runtimeTarget"] == "linux-ia32"
+        assert capabilities["architecture"] == "x86"
+        assert capabilities["fieldTypeBytes"] == 4
     assert capabilities["functions"]["pinpadPresent"]["available"] is True
     assert capabilities["functions"]["pinpadKey"]["available"] is False
     assert capabilities["functions"]["configure"]["available"] is False

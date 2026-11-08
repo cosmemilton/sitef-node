@@ -7,9 +7,11 @@ Use o VS Code **local do Windows** e `node.exe` x64 para executar a ponte e a DL
 1. Abra a raiz do checkout no VS Code local. Se a janela estiver conectada ao WSL, use a opção de reabrir a pasta no Windows. Não execute a DLL a partir de Node Linux.
 2. Instale as dependências e provisione a ponte e o kit autorizado conforme o README.
 3. Os perfis usam `%USERPROFILE%\Documents\SiTefDevelopment` como diretório de trabalho; essa pasta precisa existir. Se escolher outro diretório, ajuste `cwd` em `.vscode/launch.json`. `SITEF_ROOT` ou `--diretorio` não alteram o `cwd` do debugger.
-4. Execute a tarefa **SiTef: compilar TypeScript (debug)**. Ela chama `scripts/build-debug.mjs` com Node Windows e gera os mapas embutidos do core, sem carregar a DLL. Não depende de npm/Node Linux ou de um caminho de usuário fixo.
+4. Execute a tarefa **SiTef: compilar TypeScript (debug)**. Ela chama `scripts/build-debug.mjs` com Node Windows e gera os mapas embutidos do core. Depois prepara o pacote local da bridge na pasta node_modules, sem executar a ponte nem carregar a DLL. Não depende de npm/Node Linux ou de um caminho de usuário fixo.
 
 O build de debug compila somente o core, suficiente para as CLIs, usando `packages/core/tsconfig.debug.json`. Ele não compila nem testa a UI. Para validar todo o workspace, execute `npm run check` no WSL com dependências Linux ou em um checkout Windows com dependências instaladas por `npm ci` no Windows; não reutilize links de workspaces criados no Linux para esse build completo no Windows. Um build/check normal pode substituir os mapas embutidos; execute a tarefa novamente antes de depurar TypeScript. Os arquivos `.mjs` dos exemplos são fontes JavaScript diretas.
+
+O preparo usa o pacote nativo ja staged em packages/bridge-win32-x64, valida versao/arquitetura/licencas e preserva uma instalacao valida da mesma versao. Nao acessa npm nem exige informar o caminho da bridge. Se faltar o artefato nativo, o erro indica o build/staging necessario. Depois de npm ci, rode novamente o build de debug para repor o pacote local ainda nao publicado.
 
 ## Exemplo principal
 

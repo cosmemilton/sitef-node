@@ -38,13 +38,14 @@ for (const fail of [false, true]) {
       await copyFile(new URL('scripts/build-debug.mjs', root), join(fixture, 'scripts/build-debug.mjs'));
       await writeFile(join(fixture, 'scripts/sync-semantic-data.mjs'), `import { appendFileSync } from 'node:fs'; appendFileSync('steps.txt', 'sync\\n');`);
       await writeFile(join(fixture, 'node_modules/typescript/bin/tsc'), `const { appendFileSync } = require('node:fs'); appendFileSync('steps.txt', process.argv.slice(2).join(' ') + '\\n'); ${fail ? 'process.exit(7);' : ''}`);
+      await writeFile(join(fixture, 'scripts/prepare-local-bridge.mjs'), `import { appendFileSync } from 'node:fs'; appendFileSync('steps.txt', 'bridge\\n');`);
       const result = spawnSync(process.execPath, [join(fixture, 'scripts/build-debug.mjs')], {
         cwd: tmpdir(), encoding: 'utf8', shell: false,
       });
       assert.equal(result.status, fail ? 7 : 0, result.stderr);
       assert.deepEqual((await readFile(join(fixture, 'steps.txt'), 'utf8')).trim().split('\n'), fail
         ? ['sync', '-p packages/core/tsconfig.debug.json']
-        : ['sync', '-p packages/core/tsconfig.debug.json']);
+        : ['sync', '-p packages/core/tsconfig.debug.json', 'bridge']);
     } finally {
       await rm(fixture, { recursive: true, force: true });
     }

@@ -450,3 +450,119 @@ test('result snapshot isolation does not clone or serialize opaque resolver valu
     await client.close();
   }
 });
+
+
+test('escreverMensagemPinpad preserves native status and sends only the permanent-message call', async () => {
+  for (const status of [0, -43, 987654]) {
+    const transport = new FakeTransport(), call = transport.call.bind(transport);
+    transport.call = async (method, params) => {
+      const result = await call(method, params);
+      return method === 'pinpadPermanentMessage' ? { status } : result;
+    };
+    const { client } = await setup([], { transportFactory: () => transport });
+    assert.deepEqual(await client.escreverMensagemPinpad('READY'), { status });
+    assert.deepEqual(methods(transport), ['load', 'configure', 'pinpadPermanentMessage']);
+    assert.deepEqual(transport.calls.at(-1).params, { message: 'READY' });
+    await client.close();
+  }
+});
+test('escreverMensagemPinpad rejects non-text and NUL before calling native code', async () => {
+  const { client, transport } = await setup();
+  for (const message of [undefined, null, 42, {}, 'A\0B'])
+    await assert.rejects(client.escreverMensagemPinpad(message), errorCode('INVALID_ARGUMENT'));
+  assert.deepEqual(methods(transport), ['load', 'configure']);
+  await client.close();
+});
+test('escreverMensagemPinpad rejects malformed native status instead of manufacturing success', async () => {
+  for (const result of [null, undefined, {}, { status: '0' }, { status: 0.5 }, { status: NaN }]) {
+    const transport = new FakeTransport(), call = transport.call.bind(transport);
+    transport.call = async (method, params) => method === 'pinpadPermanentMessage' ? result : call(method, params);
+    const { client } = await setup([], { transportFactory: () => transport });
+    await assert.rejects(client.escreverMensagemPinpad('READY'), errorCode('INVALID_NATIVE_RESULT'));
+    await client.close();
+  }
+});
+test('escreverMensagemPinpad refuses concurrent calls and transactions while auxiliary call is pending', async () => {
+  let resolveCall;
+  const pending = new Promise(resolve => { resolveCall = resolve; });
+  const transport = new FakeTransport(), call = transport.call.bind(transport);
+  transport.call = async (method, params) => {
+    if (method === 'pinpadPermanentMessage') {
+      transport.calls.push({ method, params });
+      return pending;
+    }
+    return call(method, params);
+  };
+  const { client } = await setup([], { transportFactory: () => transport });
+  const first = client.escreverMensagemPinpad('READY');
+  await assert.rejects(client.escreverMensagemPinpad('OTHER'), errorCode('SESSION_BUSY'));
+  await assert.rejects(client.createTransaction(input()).process(), errorCode('SESSION_BUSY'));
+  assert.equal(methods(transport).filter(m => m === 'pinpadPermanentMessage').length, 1);
+  assert.equal(methods(transport).includes('start'), false);
+  resolveCall({ status: 0 }); await first; await client.close();
+});
+test('escreverMensagemPinpad is unavailable inside active transaction callbacks', async () => {
+  const { client, transport } = await setup([exchange(30, 'Synthetic prompt', 999999), { status: -2 }]);
+  const transaction = client.createTransaction(input());
+  await transaction.process({ collect: async () => {
+    await assert.rejects(client.escreverMensagemPinpad('READY'), errorCode('SESSION_BUSY'));
+    return 'answer';
+  } });
+  assert.equal(methods(transport).includes('pinpadPermanentMessage'), false);
+  await client.close();
+});
+test('escreverMensagemPinpad keeps pending payment and never confirms or undoes it', async () => {
+  const { client, transport } = await setup([{ status: 0 }]);
+  const transaction = client.createTransaction(input());
+  await transaction.process();
+  assert.equal(transaction.state, 'awaiting-finalization');
+  assert.deepEqual(await client.escreverMensagemPinpad('READY'), { status: 0 });
+  assert.equal(transaction.state, 'awaiting-finalization');
+  assert.equal(methods(transport).includes('finish'), false);
+  await client.close();
+});
+test('escreverMensagemPinpad preserves transport error then refuses uncertain and closed sessions', async () => {
+  const failure = new SitefError('BRIDGE_TIMEOUT', 'Synthetic timeout', { uncertain: true });
+  const transport = new FakeTransport(), call = transport.call.bind(transport);
+  transport.call = async (method, params) => {
+    if (method === 'pinpadPermanentMessage') { transport.calls.push({ method, params }); throw failure; }
+    return call(method, params);
+  };
+  const { client } = await setup([], { transportFactory: () => transport });
+  await assert.rejects(client.escreverMensagemPinpad('READY'), error => error === failure);
+  await assert.rejects(client.escreverMensagemPinpad('READY'), errorCode('RECONNECT_REQUIRED'));
+  assert.equal(methods(transport).filter(m => m === 'pinpadPermanentMessage').length, 1);
+  await client.close();
+  await assert.rejects(client.escreverMensagemPinpad('READY'), errorCode('SESSION_BUSY'));
+  assert.equal(methods(transport).filter(m => m === 'pinpadPermanentMessage').length, 1);
+});
+
+
+test('escreverMensagemPinpad refuses journal-uncertain state after a known terminal result and preserves recovery', async () => {
+  const { client, transport } = await setup([{ status: 0 }], {
+    onStateChange: async snapshot => {
+      if (snapshot.state === 'awaiting-finalization') throw new Error('Synthetic storage failure');
+    }
+  });
+  const transaction = client.createTransaction(input());
+  await assert.rejects(transaction.process(), error => {
+    assert.equal(error.code, 'JOURNAL_UNCERTAIN');
+    assert.equal(getPartialTransaction(error).terminalKnown, true);
+    assert.equal(getPartialTransaction(error).status, 0);
+    return true;
+  });
+  assert.equal(client.state, 'uncertain');
+  const recovery = structuredClone(client.recovery);
+  const before = transport.calls.length;
+  await assert.rejects(client.escreverMensagemPinpad('READY'), error => {
+    assert.equal(error.code, 'RECONNECT_REQUIRED');
+    assert.equal(error.uncertain, true);
+    return true;
+  });
+  assert.equal(transport.calls.length, before);
+  assert.equal(methods(transport).includes('pinpadPermanentMessage'), false);
+  assert.equal(methods(transport).includes('finish'), false);
+  assert.deepEqual(client.recovery, recovery);
+  assert.equal(client.state, 'uncertain');
+  await client.close();
+});

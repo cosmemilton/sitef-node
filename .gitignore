@@ -28,3 +28,6 @@ target/
 *.journal.json.lock
 .DS_Store
 Thumbs.db
+
+# Generated platform bridge executables; stage from native release builds.
+packages/bridge-*/bin/

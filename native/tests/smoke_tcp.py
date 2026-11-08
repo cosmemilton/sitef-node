@@ -41,7 +41,7 @@ with tempfile.TemporaryDirectory(prefix="sitef-loopback-contract-") as directory
                     reply = receive()
                     assert reply["id"] == sequence and "error" not in reply, reply
                     return reply["result"]
-                assert call("load", {"libraryPath": str(shared), "testMode": True})["runtimeTarget"] == "windows-x64"
+                assert call("load", {"libraryPath": str(shared), "testMode": True})["runtimeTarget"] == "synthetic-test"
                 # The fixture rejects configuration if the nonce remains in getenv.
                 assert call("configure", {"server": "127.0.0.1", "storeId": "00000000", "terminalId": "AA123456", "additionalParameters": "[X=1]"})["status"] == 0
                 start = {"functionId": 0, "amount": "12,34", "fiscalDocument": "123", "fiscalDate": "20261030", "fiscalTime": "120000", "operator": "test", "additionalParameters": "{X=1}"}

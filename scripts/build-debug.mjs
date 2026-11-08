@@ -8,6 +8,7 @@ const compiler = fileURLToPath(new URL('../node_modules/typescript/bin/tsc', imp
 const steps = [
   [fileURLToPath(new URL('./sync-semantic-data.mjs', import.meta.url))],
   [compiler, '-p', 'packages/core/tsconfig.debug.json'],
+  [fileURLToPath(new URL('./prepare-local-bridge.mjs', import.meta.url))],
 ];
 
 for (const args of steps) {

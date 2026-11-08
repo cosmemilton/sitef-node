@@ -1,0 +1,115 @@
+# Build and artifact checks only; no registry publication.
+# Own code/fixtures only. No vendor DLL, manual, payment network or secrets.
+name: SDK and native contract
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Install Rust stable
+        run: rustup toolchain install stable --profile minimal
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: TypeScript and own controller tests
+        run: npm run check
+      - name: Verify common catalog snapshot
+        run: node scripts/export-catalog.mjs --check
+      - name: Rust unit and own ABI fixtures
+        run: |
+          cargo +stable test --locked --manifest-path native/Cargo.toml
+          python3 native/tests/smoke.py
+          python3 native/tests/smoke_tcp.py
+      - name: SDK to Rust to own C fixture
+        run: node packages/core/test/native.integration.mjs
+      - name: Inspect publishable package contents (no publish)
+        run: npm run pack:check
+  windows-x64-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Install Rust x64 standard library
+        run: rustup toolchain install stable --profile minimal --component rust-docs --target x86_64-pc-windows-msvc
+      - name: Compile Windows x64 helper without vendor libraries
+        env:
+          RUSTFLAGS: -Ctarget-feature=+crt-static --remap-path-prefix=${{ github.workspace }}=/sitef --remap-path-prefix=C:\Users=/build-users
+        run: cargo +stable build --locked --release --target x86_64-pc-windows-msvc --manifest-path native/Cargo.toml
+
+      - name: Generate notices from the build toolchain
+        env:
+          RUSTUP_TOOLCHAIN: stable
+        run: |
+          cargo +stable fetch --locked --manifest-path native/Cargo.toml
+          python scripts/generate-bridge-notices.py
+      - name: Stage and inspect Windows bridge package
+        run: |
+          npm run stage:bridge -- win32-x64
+          npm run pack:bridge:windows
+      - name: Prepare local automatic bridge and run Windows tests
+        run: |
+          node scripts/prepare-local-bridge.mjs
+          npm run check
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sitef-bridge-win32-x64
+          path: cosmemilton-sitef-bridge-win32-x64-*.tgz
+          if-no-files-found: error
+  linux-i686-build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Install build-only multilib toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib libc6-dev-i386
+      - name: Install Rust i686 target
+        run: rustup toolchain install stable --profile minimal --component rust-docs --target i686-unknown-linux-gnu
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Build and test the owned i686 helper
+        run: |
+          cargo +stable test --locked --target i686-unknown-linux-gnu --manifest-path native/Cargo.toml
+          RUSTFLAGS="--remap-path-prefix=$HOME=/build-home --remap-path-prefix=$GITHUB_WORKSPACE=/sitef" cargo +stable build --locked --release --target i686-unknown-linux-gnu --manifest-path native/Cargo.toml
+      - name: Verify i686 synthetic ABI contract
+        env:
+          SITEF_SMOKE_TARGET: i686-unknown-linux-gnu
+          SITEF_SMOKE_CC: gcc -m32
+        run: python3 native/tests/smoke.py
+      - name: Generate notices from the build toolchain
+        env:
+          RUSTUP_TOOLCHAIN: stable
+        run: |
+          cargo +stable fetch --locked --manifest-path native/Cargo.toml
+          python3 scripts/generate-bridge-notices.py
+      - name: Stage and inspect Linux bridge package
+        run: |
+          npm run stage:bridge -- linux-ia32
+          npm run pack:bridge:linux
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sitef-bridge-linux-ia32
+          path: cosmemilton-sitef-bridge-linux-ia32-*.tgz
+          if-no-files-found: error

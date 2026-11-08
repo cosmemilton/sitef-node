@@ -77,3 +77,17 @@ test('close entrega EOF e aguarda descarregamento normal antes de liberar a sess
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('IPC child environment overrides are isolated from parent', async () => {
+  const before = process.env.SITEF_SYNTHETIC_ENV;
+  const transport = new BridgeTransport({
+    executable: process.execPath, cwd,
+    env: { SITEF_SYNTHETIC_ENV: 'child-only' },
+    args: ['-e', "require('node:readline').createInterface({input:process.stdin}).on('line', line => { const p=JSON.parse(line); process.stdout.write(JSON.stringify({id:p.id,result:{value:process.env.SITEF_SYNTHETIC_ENV}})+String.fromCharCode(10)); });"],
+    timeoutMs: 3000
+  });
+  try {
+    assert.deepEqual(await transport.call('env'), { value: 'child-only' });
+    assert.equal(process.env.SITEF_SYNTHETIC_ENV, before);
+  } finally { await transport.close(); }
+});

@@ -93,11 +93,11 @@ test('simple initializes once before the first menu even when immediately exitin
   const before = process.listenerCount('SIGINT');
   const transport = fakeTransport();
   const io = terminal([() => {
-    assert.deepEqual(transport.calls.map(c => c.method), ['load', 'configure']);
+    assert.deepEqual(transport.calls.map(c => c.method), ['load', 'configure', 'pinpadPermanentMessage']);
     return '';
   }]);
   assert.equal(await run(io, transport), undefined);
-  assert.deepEqual(transport.calls.map(c => c.method), ['load', 'configure', 'close']);
+  assert.deepEqual(transport.calls.map(c => c.method), ['load', 'configure', 'pinpadPermanentMessage', 'close']);
   assert.deepEqual(await readdir(join(root, 'state', 'automation')), []);
   assert.equal(process.listenerCount('SIGINT'), before);
 }));
@@ -183,7 +183,7 @@ test('simple multiple operations reuse one client and pending/confirm/undo bind 
   const result = await run(io, transport);
   assert.equal(result.status, 0);
   for (const method of ['load', 'configure', 'close']) assert.equal(calls(transport, method).length, 1);
-  assert.equal(calls(transport, 'pinpadPermanentMessage').length, 0);
+  assert.equal(calls(transport, 'pinpadPermanentMessage').length, 4);
   const starts = calls(transport, 'start'), finishes = calls(transport, 'finish');
   assert.deepEqual(starts.map(c => c.params.functionId), [3, 2, 3]);
   assert.equal(new Set(starts.map(c => c.params.fiscalDocument)).size, 3);
@@ -238,6 +238,7 @@ for (const stage of ['first-menu', 'next-menu', 'cycle', 'decision']) test('simp
   assert.equal(calls(transport, 'start').length, stage === 'first-menu' ? 0 : 1);
   assert.equal(transport.calls.at(-1).method, 'close');
   assert.equal(calls(transport, 'load').length, 1);
+  assert.equal(calls(transport, 'pinpadPermanentMessage').length, stage === 'first-menu' ? 1 : 2);
   if (stage !== 'first-menu') await journal(root);
   else assert.deepEqual(await readdir(join(root, 'state', 'automation')), []);
 }));
@@ -261,6 +262,7 @@ test('simple finish failure attempts exactly once, never undoes and still closes
   await assert.rejects(run(terminal(['3', '1', '1']), transport));
   assert.equal(calls(transport, 'start').length, 1); assert.equal(calls(transport, 'finish').length, 1);
   assert.equal(calls(transport, 'finish')[0].params.confirm, 1);
+  assert.equal(calls(transport, 'pinpadPermanentMessage').length, 1, 'no restoration after uncertain finalization');
   assert.equal(transport.calls.at(-1).method, 'close'); assert.equal(process.listenerCount('SIGINT'), before);
   await journal(root);
 }));
@@ -306,10 +308,91 @@ test('simple initialization never reads or changes earlier synthetic journal and
   await writeFile(previous, contents); await writeFile(lock, 'synthetic-owner');
   const transport = fakeTransport(), io = terminal(['']);
   await run(io, transport);
-  assert.deepEqual(transport.calls.map(c => c.method), ['load', 'configure', 'close']);
+  assert.deepEqual(transport.calls.map(c => c.method), ['load', 'configure', 'pinpadPermanentMessage', 'close']);
   assert.equal(await readFile(previous, 'utf8'), contents);
   assert.equal(await readFile(lock, 'utf8'), 'synthetic-owner');
   assert.deepEqual((await readdir(directory)).sort(), ['synthetic-previous.journal.json', 'synthetic-previous.journal.json.lock']);
   assert.equal(calls(transport, 'start').length, 0); assert.equal(calls(transport, 'finish').length, 0);
   assert.doesNotMatch(io.writes.join('\n'), /Inspecao somente leitura|Aviso:|synthetic-previous/);
+}));
+
+
+test('simple example delegates bridge selection and preserves top-level terminal configuration', async () => {
+  const source = await readFile(new URL('../../../examples/windows-simple.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /cliConnection|bridgeExecutable|bridgeDirectory/);
+  assert.match(source, /ClientSitef\.create/);
+  assert.match(source, /libraryPath: join\(directory, 'CliSiTef64I\.dll'\)/);
+});
+
+test('simple receives the automatically resolved bridge instead of SITEF_ROOT executable', windows, () => prepared(async ({ root, directory }) => {
+  const transport = fakeTransport();
+  let resolved;
+  await main({
+    env: { SITEF_ROOT: root, SITEF_RUNTIME: directory },
+    createIO: () => terminal(['']),
+    createTransport: options => { resolved = options; return transport; }
+  });
+  assert.notEqual(resolved.executable, join(root, 'sitef-bridge.exe'));
+  assert.match(resolved.executable, /sitef-bridge-win32-x64/);
+  assert.equal(resolved.cwd, dirname(resolved.executable));
+  assert.deepEqual(transport.calls.map(c => c.method), ['load', 'configure', 'pinpadPermanentMessage', 'close']);
+}));
+
+
+test('simple restores the same constant message after terminal nonzero and pending cycles', windows, () => prepared(async ({ run }) => {
+  const transport = fakeTransport([[{ status: -2 }], [{ status: 0 }]]);
+  await run(terminal(['111', '3', '1', '3', '']), transport);
+  const messages = calls(transport, 'pinpadPermanentMessage');
+  assert.equal(messages.length, 3);
+  assert.deepEqual(messages.map(c => c.params.message), ['CAIXA DISPONIVEL', 'CAIXA DISPONIVEL', 'CAIXA DISPONIVEL']);
+  assert.equal(calls(transport, 'finish').length, 0);
+}));
+
+test('simple never restores message after uncertain transaction', windows, () => prepared(async ({ run }) => {
+  const transport = fakeTransport([[new SitefError('BRIDGE_TIMEOUT', 'synthetic', { uncertain: true })]]);
+  await assert.rejects(run(terminal(['3', '1']), transport), { code: 'TRANSACTION_UNCERTAIN' });
+  assert.equal(calls(transport, 'pinpadPermanentMessage').length, 1);
+}));
+
+test('simple post-cycle nonzero message status is reported without changing transaction result', windows, () => prepared(async ({ run }) => {
+  const transport = fakeTransport([[{ status: -2 }]]), original = transport.call.bind(transport);
+  transport.call = async (method, params) => {
+    if (method === 'pinpadPermanentMessage' && calls(transport, method).length) {
+      transport.calls.push({ method, params }); return { status: -43 };
+    }
+    return original(method, params);
+  };
+  const io = terminal(['111', '']);
+  const result = await run(io, transport);
+  assert.equal(result.status, -2);
+  assert.ok(io.writes.some(line => line.includes('Retorno nativo: -43')));
+  assert.equal(calls(transport, 'pinpadPermanentMessage').length, 2);
+}));
+
+test('simple restoration failure preserves terminal interaction error', windows, () => prepared(async ({ run }) => {
+  const transport = fakeTransport([[field(121, 'SYNTHETIC RECEIPT'), { status: -2 }]]);
+  const original = transport.call.bind(transport);
+  transport.call = async (method, params) => {
+    if (method === 'pinpadPermanentMessage' && calls(transport, method).length) {
+      transport.calls.push({ method, params }); throw new SitefError('MESSAGE_TRANSPORT_FAILED', 'synthetic');
+    }
+    return original(method, params);
+  };
+  const io = terminal(['110']); io.writeReceipt = async () => { throw Error('synthetic receipt error'); };
+  await assert.rejects(run(io, transport), { code: 'INTERACTION_FAILED' });
+  assert.equal(calls(transport, 'pinpadPermanentMessage').length, 2);
+  assert.equal(calls(transport, 'finish').length, 0);
+}));
+
+test('simple restoration transport failure stops instead of starting another transaction', windows, () => prepared(async ({ run }) => {
+  const transport = fakeTransport([[{ status: -2 }]]), original = transport.call.bind(transport);
+  transport.call = async (method, params) => {
+    if (method === 'pinpadPermanentMessage' && calls(transport, method).length) {
+      transport.calls.push({ method, params }); throw new SitefError('MESSAGE_TRANSPORT_FAILED', 'synthetic');
+    }
+    return original(method, params);
+  };
+  await assert.rejects(run(terminal(['111']), transport), { code: 'MESSAGE_TRANSPORT_FAILED' });
+  assert.equal(calls(transport, 'start').length, 1);
+  assert.equal(calls(transport, 'pinpadPermanentMessage').length, 2);
 }));

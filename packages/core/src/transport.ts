@@ -7,6 +7,8 @@ export interface BridgeOptions {
   executable: string;
   cwd: string;
   args?: string[];
+  /** Overrides apply only to the child; the parent environment is unchanged. */
+  env?: Record<string, string>;
   timeoutMs?: number;
   maxFrameBytes?: number;
 }
@@ -26,7 +28,7 @@ export class BridgeTransport implements Transport {
     this.timeoutMs = options.timeoutMs ?? 120_000;
     this.maxFrameBytes = options.maxFrameBytes ?? 1_048_576;
     if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0 || !Number.isSafeInteger(this.maxFrameBytes) || this.maxFrameBytes < 1024) throw new SitefError('INVALID_OPTIONS', 'Limites IPC inválidos.');
-    this.process = spawn(options.executable, options.args ?? [], {cwd: options.cwd, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe']});
+    this.process = spawn(options.executable, options.args ?? [], {cwd: options.cwd, env: { ...process.env, ...options.env }, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe']});
     this.exited = new Promise(resolve => { this.process.once('exit', () => resolve()); this.process.once('error', () => resolve()); });
     this.process.stdout.on('data', (chunk: Buffer) => this.receive(chunk));
     // Mensagens externas podem conter dados financeiros; nunca as encaminhar a logs.

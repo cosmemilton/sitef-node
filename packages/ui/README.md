@@ -1,16 +1,17 @@
 # Modal de interação CliSiTef
 
-A versão 0.3.0 recebe os DTOs semânticos do engine `@cosmemilton/sitef` 0.3.0. O controller usa o validador puro e compatível com navegador de `@cosmemilton/sitef/fields`, sem carregar Node, DLL ou filesystem no renderer.
+A versão 0.4.0 recebe os DTOs semânticos do engine `@cosmemilton/sitef` 0.4.0. O controller usa o validador puro e compatível com navegador de `@cosmemilton/sitef/fields`, sem carregar Node, DLL ou filesystem no renderer.
 
 Pacote opcional React. O pacote Node `@cosmemilton/sitef` funciona com callbacks próprios sem instalar UI. Quem escolhe este modal instala obrigatoriamente `cosmemilton-ui@^4.1.0`, React e ReactDOM. `@iconify/react` também é declarado peer porque o entrypoint interativo da cosmemilton-ui 4.1.0 o importa ao montar o bundle, mesmo para componentes sem ícones. A biblioteca do fornecedor continua sendo fornecida pelo integrador no host Node.
 
 ## Instalação
 
-Após a versão estar disponível no registro, instale o modal e suas dependências peer
+A [versão 0.3.0](https://www.npmjs.com/package/@cosmemilton/sitef-ui/v/0.3.0) foi publicada no npm em 2026-11-08, com acesso público.
+Instale o modal e suas dependências peer
 na aplicação React (o core também precisa estar disponível no host Node):
 
 ```sh
-npm install @cosmemilton/sitef@0.3.0 @cosmemilton/sitef-ui@0.3.0 cosmemilton-ui@^4.1.0 "@iconify/react@>=5" "react@>=18.2 <20" "react-dom@>=18.2 <20"
+npm install @cosmemilton/sitef@0.4.0 @cosmemilton/sitef-ui@0.4.0 cosmemilton-ui@^4.1.0 "@iconify/react@>=5" "react@>=18.2 <20" "react-dom@>=18.2 <20"
 ```
 
 ```js
@@ -22,7 +23,7 @@ import 'cosmemilton-ui/styles.css';
 Use o [exemplo Windows simples](https://github.com/cosmemilton/sitef-node/blob/main/examples/windows-simple.mjs)
 como referência para o ciclo do host. Ele usa callbacks de terminal, não monta
 este modal; a ligação com o frontend requer o transporte descrito abaixo.
-Os comandos de instalação não comprovam que a release já foi publicada.
+O modal não provisiona a ponte nem o kit proprietário. No host Node, o core 0.4.0 instala a ponte própria como dependência opcional da plataforma; o integrador continua responsável pelo kit autorizado.
 
 ## Integração
 
@@ -52,4 +53,4 @@ No renderer, conecte `createSitefModal` à interface restrita do transporte: ao 
 
 ## Distribuição e licença
 
-Licença do código próprio: [MIT](LICENSE), copyright 2026 cosmemilton. Dependências mantêm suas próprias licenças. O pacote não inclui a ponte Rust nem a DLL proprietária. A ponte própria também é MIT, mas o kit CliSiTef continua sujeito aos direitos do fornecedor, sem concessão por esta licença. A interface não confirma pagamentos por conta própria. A preparação desta versão não comprova publicação no npm ou homologação financeira.
+Licença do código próprio: [MIT](LICENSE), copyright 2026 cosmemilton. Dependências mantêm suas próprias licenças. O pacote não inclui a ponte Rust nem a DLL proprietária. A ponte própria também é MIT, mas o kit CliSiTef continua sujeito aos direitos do fornecedor, sem concessão por esta licença. A interface não confirma pagamentos por conta própria. A publicação no npm não comprova homologação financeira.
