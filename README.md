@@ -2,7 +2,7 @@
 
 SDK TypeScript para integrar uma automação Node.js à interface CliSiTef, com uma ponte Rust em processo separado e decisões financeiras explícitas.
 
-**Runtime: Windows x64. Sem homologação financeira.** A versão 0.3.0 está preparada para publicação no npm. Esta documentação não comprova publicação nem aprovação para uso em produção. Os pacotes mantêm a licença `UNLICENSED`.
+**Runtime: Windows x64. Sem homologação financeira.** A versão 0.3.0 está preparada para publicação no npm. Esta documentação não comprova publicação nem aprovação para uso em produção. O código próprio é distribuído sob a licença [MIT](LICENSE); os dois pacotes npm têm acesso público configurado.
 
 ## Componentes e requisitos
 
@@ -13,6 +13,24 @@ SDK TypeScript para integrar uma automação Node.js à interface CliSiTef, com 
 Use Node.js **>=22.18.0**, Windows x64, a ponte x64 e a **biblioteca de interface x64** fornecida pelo integrador, como `CliSiTef64I.dll`. A DLL interna `CliSiTef.dll` não substitui essa interface. Caminhos da ponte, biblioteca e diretórios operacionais são explícitos.
 
 DLLs, INIs, certificados, chaves e manuais proprietários não são distribuídos nem baixados automaticamente. WSL/Linux serve ao desenvolvimento e aos testes sintéticos, não à execução de uma biblioteca SiTef de produção.
+
+## Instalação npm
+
+Após a versão estar disponível no registro, instale o core na aplicação Node:
+
+```sh
+npm install @cosmemilton/sitef@0.3.0
+```
+
+```js
+import { ClientSitef } from '@cosmemilton/sitef';
+```
+
+O pacote fornece a API JavaScript/TypeScript, não um runtime SiTef pronto.
+Provisione a ponte própria e o kit autorizado do fornecedor separadamente.
+Para a UI React opcional e suas dependências peer, veja o
+[quickstart do modal](packages/ui/README.md#instalação).
+Os comandos acima descrevem o consumo da release, não comprovam sua publicação.
 
 ## Referência principal: exemplo simples Windows
 
@@ -160,8 +178,8 @@ Os testes nativos usam fixtures C próprias. Não são homologação, não valid
 
 ## Origem e licença
 
-Implementação original baseada na documentação do fornecedor: [introdução](https://dev.softwareexpress.com.br/docs/sitef-interface-simplificada/introducao/), [rotinas](https://dev.softwareexpress.com.br/en/docs/clisitef/api_rotinas_disponiveis/) e [configuração](https://dev.softwareexpress.com.br/docs/clisitef/configuracao_biblioteca/). O catálogo usa VRS-258 e carteiras 1.43 do kit documental x86; as capacidades do binário x64 devem ser verificadas em runtime. Não há promessa de cobertura universal de produtos ou versões.
+Implementação original baseada na documentação do fornecedor: [introdução](https://dev.softwareexpress.com.br/docs/sitef-interface-simplificada/introducao/), [rotinas](https://dev.softwareexpress.com.br/en/docs/clisitef/api_rotinas_disponiveis/) e [configuração](https://dev.softwareexpress.com.br/docs/clisitef/configuracao_biblioteca/). A base semântica e os metadados de origem usam VRS-258 e Carteiras Digitais 1.43 do kit documental x86. Os 444 IDs da seção 5.3.2 foram conferidos com VRS-260, e guias específicos registram consultas pontuais a essa revisão. Isso não equivale a uma auditoria semântica completa da VRS-260. As capacidades do binário x64 devem ser verificadas em runtime. Não há promessa de cobertura universal de produtos ou versões.
 
 [node-sitef](https://github.com/ddanielcruz/node-sitef) foi referência arquitetural; nenhum código dele ou código Delphi foi incorporado. A ponte Rust tem este repositório como fonte canônica. Clientes relacionados: [Python](https://github.com/cosmemilton/sitef-python) e [PHP](https://github.com/cosmemilton/sitef-php).
 
-**Licença atual: `UNLICENSED`.** Não há concessão de licença open source. Distribuir no npm não altera essa condição nem concede direitos sobre o kit proprietário. A publicação exige revisão explícita de direitos, acesso e conteúdo dos pacotes.
+**Licença: [MIT](LICENSE), copyright 2026 cosmemilton, para o código próprio deste repositório**, incluindo o SDK TypeScript, a UI e a ponte Rust. Dependências de terceiros mantêm suas próprias licenças. A licença não concede direitos sobre CliSiTef, DLLs, INIs, certificados, manuais ou outros materiais proprietários do fornecedor, que não acompanham os pacotes. O integrador deve obter e usar seu kit conforme os direitos e requisitos do fornecedor.

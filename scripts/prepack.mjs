@@ -46,6 +46,14 @@ async function buildPackage(name) {
   await validateDirectory(dist);
 }
 
+export function validateReleaseLicense(packageLicense, rootLicense) {
+  if (packageLicense !== rootLicense || !rootLicense.startsWith('MIT License\n') ||
+      !rootLicense.includes('Permission is hereby granted, free of charge') ||
+      !rootLicense.includes('THE SOFTWARE IS PROVIDED "AS IS"')) {
+    throw new Error('Package LICENSE must contain the canonical MIT license');
+  }
+}
+
 export async function preparePackage(directory = process.cwd()) {
   const current = await realpath(directory);
   const core = await realpath(join(root, 'packages/core'));
@@ -53,6 +61,13 @@ export async function preparePackage(directory = process.cwd()) {
   if (current !== core && current !== ui) throw new Error('Run prepack from a publishable workspace');
   const readme = await readFile(join(current, 'README.md'), 'utf8');
   if (!readme.trim()) throw new Error('Package README is required');
+  validateReleaseLicense(await readFile(join(current, 'LICENSE'), 'utf8'),
+    await readFile(join(root, 'LICENSE'), 'utf8'));
+  const manifest = JSON.parse(await readFile(join(current, 'package.json'), 'utf8'));
+  if (manifest.license !== 'MIT' || manifest.publishConfig?.access !== 'public' ||
+      manifest.publishConfig?.registry !== 'https://registry.npmjs.org/') {
+    throw new Error('Package must declare MIT and the authorized public npm registry');
+  }
   run(join(root, 'scripts/sync-semantic-data.mjs'));
   await buildPackage('core');
   if (current === ui) await buildPackage('ui');

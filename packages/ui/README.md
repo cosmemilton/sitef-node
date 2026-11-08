@@ -4,6 +4,28 @@ A versão 0.3.0 recebe os DTOs semânticos do engine `@cosmemilton/sitef` 0.3.0.
 
 Pacote opcional React. O pacote Node `@cosmemilton/sitef` funciona com callbacks próprios sem instalar UI. Quem escolhe este modal instala obrigatoriamente `cosmemilton-ui@^4.1.0`, React e ReactDOM. `@iconify/react` também é declarado peer porque o entrypoint interativo da cosmemilton-ui 4.1.0 o importa ao montar o bundle, mesmo para componentes sem ícones. A biblioteca do fornecedor continua sendo fornecida pelo integrador no host Node.
 
+## Instalação
+
+Após a versão estar disponível no registro, instale o modal e suas dependências peer
+na aplicação React (o core também precisa estar disponível no host Node):
+
+```sh
+npm install @cosmemilton/sitef@0.3.0 @cosmemilton/sitef-ui@0.3.0 cosmemilton-ui@^4.1.0 "@iconify/react@>=5" "react@>=18.2 <20" "react-dom@>=18.2 <20"
+```
+
+```js
+import { SitefModal, createSitefModal } from '@cosmemilton/sitef-ui';
+import { CmThemeProvider, CmToastProvider } from 'cosmemilton-ui/client';
+import 'cosmemilton-ui/styles.css';
+```
+
+Use o [exemplo Windows simples](https://github.com/cosmemilton/sitef-node/blob/main/examples/windows-simple.mjs)
+como referência para o ciclo do host. Ele usa callbacks de terminal, não monta
+este modal; a ligação com o frontend requer o transporte descrito abaixo.
+Os comandos de instalação não comprovam que a release já foi publicada.
+
+## Integração
+
 Importe `cosmemilton-ui/styles.css` uma vez no frontend e monte `SitefModal` dentro dos providers `CmThemeProvider` e `CmToastProvider` de `cosmemilton-ui/client`. Crie uma instância do controller por sessão com `createSitefModal({ onCancel: () => abortController.abort() })`; passe seu `handler` para a sessão e configure `onExchange: controller.onExchange` no core. Chame `complete()` depois que a execução do SDK encerrar o loop. O controller não confirma nem desfaz a venda financeira: a aplicação decide isso separadamente pelo SDK e pelo resultado fiscal.
 
 As perguntas são respondidas pelo operador. Menus preservam o índice SiTef, sem seleção automática. Mensagens de operador e cliente são distintas. O QR permanece no mesmo modal e sua exibição retorna imediatamente ao loop. Os erros de validação e resultados operacionais usam toast sem deslocar a página. Os comandos de PIN no pinpad não são transformados em campos HTML pelo modal.
@@ -30,4 +52,4 @@ No renderer, conecte `createSitefModal` à interface restrita do transporte: ao 
 
 ## Distribuição e licença
 
-Licença atual: `UNLICENSED`. O pacote não inclui a ponte Rust nem a DLL proprietária. A interface não confirma pagamentos por conta própria. A preparação desta versão não comprova publicação no npm ou homologação financeira.
+Licença do código próprio: [MIT](LICENSE), copyright 2026 cosmemilton. Dependências mantêm suas próprias licenças. O pacote não inclui a ponte Rust nem a DLL proprietária. A ponte própria também é MIT, mas o kit CliSiTef continua sujeito aos direitos do fornecedor, sem concessão por esta licença. A interface não confirma pagamentos por conta própria. A preparação desta versão não comprova publicação no npm ou homologação financeira.

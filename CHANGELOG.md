@@ -8,9 +8,10 @@ As alterações abaixo descrevem o código e a documentação. Uma versão do c�
 - Resultados completos e parciais com campos conhecidos, desconhecidos, repetidos e bytes preservados.
 - Exemplo de referência `examples/windows-simple.mjs`, com menu após inicialização da DLL, impressão simulada em tela e confirmação/desfazimento explícitos.
 - CLI completa e ferramenta de reconciliação mantidas como opções avançadas.
+- Instalação real dos tarballs em consumidor isolado, tipos públicos estritos, bundle React e integração com a ponte/fixture próprias verificados.
 - Documentação reorganizada em torno do exemplo simples, do ciclo de vida e dos limites operacionais; preparação dos pacotes npm e seus READMEs.
 
-Os artefatos foram verificados localmente; a publicação npm é uma etapa separada e não foi realizada. Licença mantida como `UNLICENSED`. Ponte Windows x64 e componentes proprietários continuam fora dos pacotes npm. A API anterior permanece disponível; revise as políticas de finalização e persistência ao adotar a nova fachada.
+Os artefatos foram verificados localmente; a publicação npm é uma etapa separada e não foi realizada. Código próprio licenciado sob MIT, com LICENSE incluído nos dois pacotes e acesso público configurado. Ponte Windows x64 e componentes proprietários continuam fora dos pacotes npm. A API anterior permanece disponível; revise as políticas de finalização e persistência ao adotar a nova fachada.
 
 ## 0.2 — base anterior
 

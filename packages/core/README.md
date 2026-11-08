@@ -1,6 +1,22 @@
 # @cosmemilton/sitef
 
-SDK TypeScript/Node.js para a interface CliSiTef, com ponte Rust isolada e finalização explícita. **Windows x64; Node.js >=22.18.0; sem homologação financeira.** A versão 0.3.0 está preparada para publicação. Licença: `UNLICENSED`.
+SDK TypeScript/Node.js para a interface CliSiTef, com ponte Rust isolada e finalização explícita. **Windows x64; Node.js >=22.18.0; sem homologação financeira.** A versão 0.3.0 está preparada para publicação. Licença do código próprio: [MIT](LICENSE). A preparação não comprova publicação no npm.
+
+## Instalação
+
+Após a versão estar disponível no registro:
+
+```sh
+npm install @cosmemilton/sitef@0.3.0
+```
+
+```js
+import { ClientSitef } from '@cosmemilton/sitef';
+```
+
+Esse import não configura nem carrega a DLL. A chamada a
+`ClientSitef.create(options)` requer os caminhos e a configuração do seu ambiente.
+A instalação npm não compila nem baixa a ponte ou o SDK proprietário.
 
 ## Começar
 
@@ -25,3 +41,12 @@ O pacote não inclui `sitef-bridge.exe`, DLL, INI, certificados ou manuais propr
 O exemplo mostra comprovantes como impressão simulada e tem entradas de teclado visíveis. Não substitui impressão física, assinatura, interface de QR, reconciliação ou homologação. Não registre PIN, PAN, trilhas, chaves, campos livres, comprovantes ou o resultado completo em logs.
 
 Consulte a documentação no [repositório](https://github.com/cosmemilton/sitef-node): README, `docs/client-transactions.md`, `docs/field-results.md`, `docs/application-state.md` e `native/README.md`. O modal React é opcional e distribuído separadamente como `@cosmemilton/sitef-ui`.
+
+## Licença e origem
+
+O SDK e a ponte Rust próprios são MIT, copyright 2026 cosmemilton.
+Dependências mantêm suas próprias licenças; nenhum direito sobre o kit
+proprietário CliSiTef é concedido por esta licença.
+A base semântica registra VRS-258 e Carteiras Digitais 1.43 do kit x86.
+A conferência dos 444 IDs da seção 5.3.2 com VRS-260 não é auditoria semântica
+completa nem homologação. Veja a [proveniência dos campos](https://github.com/cosmemilton/sitef-node/blob/main/docs/field-results.md).

@@ -21,8 +21,9 @@ WSL is the development environment. `testMode: true` on a non-Windows host permi
 only our synthetic native ABI tests; it does not provide a Linux production
 runtime. Production DLLs execute in the Windows x64 helper process.
 
-The API contract comes exclusively from the newer VRS-258 and Wallets 1.43 PDFs
-in the original Win32 ZIP. PDFs in the x64 ZIP were not read or used.
+The original semantic baseline is VRS-258 and Wallets 1.43 from the Win32 kit.
+Later checks compared the 444 field IDs in section 5.3.2 with VRS-260; specific guides cite additional targeted consultations. This is not a
+complete semantic audit of VRS-260. PDFs in the x64 kit were not read or used.
 The supplied x64 binary is older than those documents. Capabilities therefore
 report the symbols actually present, and optional wrappers fail explicitly when
 an entrypoint is missing; newer documented features still require vendor tests.
@@ -139,3 +140,10 @@ SDK. The bridge version is independent of the npm package version; the protocol
 handshake and actual capabilities remain authoritative. npm release preparation
 does not imply a native binary release or financial homologation. See
 [release preparation](../docs/releasing.md).
+
+## License
+
+The original Rust bridge code is licensed under [MIT](../LICENSE), copyright
+2026 cosmemilton. Dependencies retain their own licenses. This license does not
+grant rights to the proprietary CliSiTef SDK, DLLs, configuration files,
+certificates or manuals. Obtain those separately through an authorized integrator.

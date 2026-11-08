@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "description": "SDK Node.js para CliSiTef com ponte nativa isolada e interação customizável",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -16,7 +16,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -33,5 +34,9 @@
   "homepage": "https://github.com/cosmemilton/sitef-node#readme",
   "bugs": {
     "url": "https://github.com/cosmemilton/sitef-node/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

@@ -1,6 +1,6 @@
 # Cobertura do protocolo e limites de homologação
 
-Referências auditadas: documentação fornecida pelo integrador, **Interface Simplificada VRS-258** e **Carteiras Digitais 1.43**. As páginas abaixo se referem à numeração impressa. Os documentos, suas extrações e as bibliotecas do fornecedor não são distribuídos neste projeto.
+Referências auditadas: documentação fornecida pelo integrador, **Interface Simplificada VRS-258** e **Carteiras Digitais 1.43**. As páginas abaixo se referem à numeração impressa. A conferência posterior dos 444 IDs da seção 5.3.2 com VRS-260 e as consultas pontuais citadas nos guias não representam auditoria semântica completa dessa revisão. Os documentos, suas extrações e as bibliotecas do fornecedor não são distribuídos neste projeto.
 
 **O runtime suportado é somente Windows x64.** A referência de protocolo continua sendo exclusivamente os dois PDFs do kit x86 já auditados. Os PDFs do pacote x64 foram apenas identificados no inventário do ZIP e não foram abertos, extraídos ou incorporados como fonte desta especificação. A convenção `stdcall` descrita na referência x86 não significa pilha x86 no runtime: a ponte usa a ABI de sistema Windows x64, com ponteiros de 64 bits, `short` de 16 e `int`/`long` de 32 bits.
 

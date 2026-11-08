@@ -1,7 +1,9 @@
 # Estado da implementação 0.2
 
-A referência usa exclusivamente os PDFs do kit x86: VRS-258 e Carteiras Digitais
-1.43. Runtime Windows x64. Nenhum PDF, DLL, INI ou chave acompanha os projetos.
+A base semântica usa os PDFs do kit x86 VRS-258 e Carteiras Digitais 1.43.
+Os 444 IDs da seção 5.3.2 foram conferidos com VRS-260, e os guias
+registram consultas pontuais a essa revisão, sem auditoria semântica completa.
+Runtime Windows x64. Nenhum PDF, DLL, INI ou chave acompanha os projetos.
 
 | Obrigação | Implementação e verificação |
 | --- | --- |

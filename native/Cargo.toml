@@ -3,6 +3,7 @@ name = "sitef-bridge"
 version = "0.1.0"
 edition = "2021"
 publish = false
+license = "MIT"
 description = "Isolated CliSiTef native host; proprietary libraries are supplied by the integrator"
 
 [dependencies]

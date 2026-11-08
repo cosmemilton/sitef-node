@@ -33,3 +33,15 @@ limitou-se a carregamento, capacidades, versão e configuração.
 - Foram verificados os tipos de arquivo, ausência de sourcemaps pessoais, binários proprietários, certificados, INIs, registros operacionais e fixtures nos tarballs.
 
 Esta rodada não carregou a DLL do fornecedor nem realizou operações financeiras. GitHub Actions permanece um template inativo; npm não foi publicado. Estes resultados não equivalem à homologação SiTef.
+
+## Candidatos MIT 0.3.0: verificação adicional em 2026-11-08
+
+- LICENSE MIT canônico conferido na raiz e em ambos os tarballs; os artefatos incluem somente código/dados próprios, manifest, README e licença.
+- Windows x64: 438 testes aprovados (423 core/CLI e 15 de empacotamento), sem falhas ou skips. WSL: 395 core aprovados e 28 testes exclusivos de Windows ignorados; UI 20/20 e empacotamento 15/15.
+- Rust 10/10, smoke ABI/IPC, TCP autenticado e integração SDK/Rust/C aprovados usando somente fixtures próprias.
+- Ponte Windows x64 recompilada com sucesso. Os avisos LNK4099 dizem respeito a PDBs de depuração das bibliotecas Microsoft; nenhum binário do fornecedor foi carregado.
+- Os dois tarballs foram instalados de fato com npm em um projeto temporário vazio, com scripts de instalação desabilitados e dependências peer resolvidas pelo registro público.
+- Imports do core, ClientSitef, fields, UI/controller e entrypoint React principal aprovados. Declarações passaram por TypeScript NodeNext estrito, sem skipLibCheck; o modal com providers e CSS gerou bundle de navegador.
+- O core instalado por tarball também passou pela integração ClientSitef, processo Rust e fixture C própria, incluindo inicialização única, campos e decisões locais sintéticas.
+
+Esta rodada não executou pagamentos, não usou pinpad ou DLL proprietária e não constitui homologação. Instalação de tarballs não comprova publicação no registro; autenticação e envio npm continuam sendo etapas separadas.
