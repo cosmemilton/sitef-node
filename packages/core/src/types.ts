@@ -1,3 +1,4 @@
+import type { TransactionFields } from './field-results.js';
 import type {
   FieldSemantic,
   FieldSnapshot,
@@ -97,7 +98,10 @@ export interface PaymentRecord {
   paymentIndex?: string;
   network?: string;
   finalizationParameters?: string;
+  /** SDK assessment verdict; automation may explicitly resolve advisory review at finalization. */
   confirmationAllowed?: boolean;
+  /** Owner of external obligations for the persisted finalization plan. */
+  finalizationResponsibility?: 'sdk' | 'automation';
   assessmentIssues?: string[];
   receipts?: ReceiptReference[];
   signatureRequired?: boolean;
@@ -127,7 +131,21 @@ export interface Journal {
   write(record: JournalRecord): Promise<void>;
   release(): Promise<void>;
 }
+/** Native fiscal scope: all pending payments for this coupon and date. */
+export interface FiscalScope {
+  fiscalDocument: string;
+  fiscalDate: string;
+}
+/** Exact transaction when possible; fiscal scope explicitly selects its whole coupon. */
+export type FinalizationScope = FiscalScope | { transactionId: string };
+export interface FinalizationResult {
+  returned: true;
+  remoteConfirmation: 'not-reported';
+  payments: string[];
+}
 export interface TransactionResult {
+  /** Ordered native outputs and validated application inputs; explicit access only. */
+  data: TransactionFields;
   status: number;
   transactionId: string;
   groupId?: string;
@@ -151,6 +169,7 @@ export interface PendingTransaction {
   fields: NativeExchange[];
 }
 export interface PendingTransactionsResult {
+  data: TransactionFields;
   status: number;
   count?: number;
   transactions: PendingTransaction[];

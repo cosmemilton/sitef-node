@@ -1,19 +1,24 @@
+import { initializationCleanupFailure } from './initialization.js';
 import { join, isAbsolute } from 'node:path';
 import { createHash } from 'node:crypto';
-import { BridgeTransport } from './transport.js';
+import { BridgeTransport, type BridgeOptions } from './transport.js';
+import type { Transport } from './types.js';
 import { FileJournal } from './journal.js';
 import { SitefClient, type ClientOptions } from './client.js';
 import { SitefError } from './errors.js';
 
 export interface CreateSitefOptions extends Omit<
   ClientOptions,
-  'transport' | 'journal'
+  'transport'
 > {
+  /** Injectable transport; loading and configuration still run exactly once here. */
+  transportFactory?: (options: BridgeOptions) => Transport | Promise<Transport>;
   bridgeExecutable: string;
   bridgeDirectory: string;
   libraryPath: string;
   workingDirectory?: string;
-  stateDirectory: string;
+  /** Legacy explicit opt-in to FileJournal. Prefer a journal adapter or onStateChange. */
+  stateDirectory?: string;
   nativeEncoding?: 'windows-1252' | 'utf-8' | 'ascii';
   timeoutMs?: number;
   maxFrameBytes?: number;
@@ -21,7 +26,7 @@ export interface CreateSitefOptions extends Omit<
   testMode?: boolean;
 }
 
-/** Entrada simples: bridge externo, biblioteca do integrador e journal fixo por terminal. */
+/** Bridge externo; persistência pertence à automação e é opcional. */
 export async function createSitef(
   options: CreateSitefOptions
 ): Promise<SitefClient> {
@@ -30,17 +35,26 @@ export async function createSitef(
       'UNSUPPORTED_ARCHITECTURE',
       'Este SDK requer Node Windows x64.'
     );
-  if (!isAbsolute(options.stateDirectory))
+  if (options.stateDirectory !== undefined && !isAbsolute(options.stateDirectory))
     throw new SitefError(
       'INVALID_PATH',
       'stateDirectory precisa ser absoluto e persistente.'
     );
-  const transport = new BridgeTransport({
+  if ((options.journal && options.stateDirectory !== undefined) ||
+      (options.initialState && (options.journal || options.stateDirectory !== undefined)))
+    throw new SitefError('INVALID_OPTIONS', 'Escolha apenas journal, stateDirectory ou initialState.');
+  const supplied = await (options.transportFactory ?? ((bridgeOptions: BridgeOptions) => new BridgeTransport(bridgeOptions)))({
     executable: options.bridgeExecutable,
     cwd: options.bridgeDirectory,
     timeoutMs: options.timeoutMs,
     maxFrameBytes: options.maxFrameBytes
   });
+  // connect() and load failure share cleanup without closing a resource twice.
+  let closePromise: Promise<void> | undefined;
+  const transport: Transport = {
+    call: supplied.call.bind(supplied),
+    close: () => closePromise ??= Promise.resolve().then(() => supplied.close())
+  };
   try {
     const capabilities = await transport.call<{
       protocolVersion: number;
@@ -79,9 +93,11 @@ export async function createSitef(
       .digest('hex');
     return await SitefClient.connect({
       transport,
-      journal: new FileJournal(
+      journal: options.journal ?? (options.stateDirectory === undefined ? undefined : new FileJournal(
         join(options.stateDirectory, terminalKey + '.journal.json')
-      ),
+      )),
+      initialState: options.initialState,
+      onStateChange: options.onStateChange,
       configuration: options.configuration,
       interaction: options.interaction,
       onExchange: options.onExchange,
@@ -93,7 +109,7 @@ export async function createSitef(
       }
     });
   } catch (error) {
-    await transport.close();
+    try { await transport.close(); } catch { throw initializationCleanupFailure(error); }
     throw error;
   }
 }

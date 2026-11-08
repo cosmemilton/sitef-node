@@ -32,3 +32,17 @@ Quando o documento não fixa escala, separador, enumeração ou estrutura comple
 ## Auditoria
 
 A cobertura foi confrontada com nova extração dos PDFs x86, separada da autoria dos metadados. O censo conferiu 444 campos individuais, três faixas, 64 eventos, 36 campos na tabela de carteiras e 124 funções gerais. As contagens por página e os hashes dos arquivos estão em `coverage-audit.json`. Não se usou nenhum PDF do kit x64.
+
+## Indicadores de habilitação retornados no comando 0
+
+170/174,724–727 e2974 são saídas informativas sem enumeração completa na tabela.
+Não exigem resolveField para o laço continuar. O catálogo usa enum-output,
+resolverRequired:false e action.optionalHook:resolveField. Sem interpretação
+específica, o valor tipado conserva {code:raw,label:undefined}; não equivale 0/1
+a desabilitado/habilitado por suposição. Um resolver fornecido pelo integrador
+pode enriquecer o valor tipado; o eco nativo continua sendo o Buffer/bytes originais.
+
+Esse tratamento é restrito às saídas documentadas. Não elimina handlers
+obrigatórios de coleta, comando29, impressão, recursos, precisão ou regras de
+produto. Não habilita modalidade nem substitui os menus devolvidos pelo SiTef.
+Referências: VRS-258 do kit x86 e VRS-260 comum, pp.28–30,32,37,40,44,50.

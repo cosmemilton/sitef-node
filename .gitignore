@@ -14,3 +14,17 @@ target/
 *.lock.tmp
 !Cargo.lock
 
+# Local release artifacts, native libraries and operational credentials/state.
+*.tgz
+*.exe
+*.lib
+*.pdb
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+*.journal.json.lock
+.DS_Store
+Thumbs.db

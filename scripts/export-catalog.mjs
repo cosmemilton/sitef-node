@@ -32,7 +32,7 @@ const snapshot = {
     completeVendorParameterCatalog: false,
     financialTransactionsValidatedAgainstVendor: false,
     unknownNumericCodesMustBePreserved: true,
-    note: 'Current aliases and ranges only. TODO: complete the field-by-field semantics identified by the VRS-258 audit (444 field entries), product workflows and vendor homologation. A listed ID is not proof of implementation or validation.',
+    note: 'This low-level snapshot contains aliases and ranges. The VRS-260 typed field catalog and descriptions are maintained in protocol/fields.json and the public FieldId API. Product-specific semantic handlers, workflows and vendor homologation remain separate coverage requirements. A listed ID is not proof of implementation or validation.',
   },
 };
 const serialized = JSON.stringify(snapshot, null, 2) + '\n';

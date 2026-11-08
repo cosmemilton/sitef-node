@@ -1,228 +1,167 @@
 # SiTef para Node.js
 
-Projeto inicial em TypeScript e Rust para integrar aplicativos Node.js com a
-interface oficial CliSiTef fornecida pelo desenvolvedor da aplicação.
+SDK TypeScript para integrar uma automação Node.js à interface CliSiTef, com uma ponte Rust em processo separado e decisões financeiras explícitas.
 
-**Estado: desenvolvimento, sem homologação.** O runtime suportado é exclusivamente
-Windows x64, com a biblioteca simulada x64 fornecida pelo integrador. O projeto
-é desenvolvido no WSL. A referência documental são os PDFs mais recentes do kit
-x86; nenhuma documentação do kit x64 é usada. O carregamento Linux real permanece
-bloqueado até receber e conferir seu kit. Os testes próprios usam uma biblioteca
-C sintética original em Linux x64.
+**Runtime: Windows x64. Sem homologação financeira.** A versão 0.3.0 está preparada para publicação no npm. Esta documentação não comprova publicação nem aprovação para uso em produção. Os pacotes mantêm a licença `UNLICENSED`.
 
-A versão 0.2 inclui o catálogo semântico dos **444 TipoCampo individuais** da
-seção 5.3.2, suas faixas, os 64 eventos e as extensões de carteiras: 536 entradas
-individuais. As 124 funções da tabela base e sete de carteiras possuem política de
-finalização explícita. O motor interpreta os formatos documentados e exige hooks
-para obrigações externas, como impressão e validação de produto. Isso não equivale
-a homologação de todos os autorizadores. Consulte [a cobertura](docs/implementation-status.md)
-e [o contrato semântico](docs/semantic-flows.md).
+## Componentes e requisitos
 
-## Pacotes
+- `@cosmemilton/sitef`: cliente, transações, callbacks, campos e snapshots, sem dependência de React.
+- `@cosmemilton/sitef-ui`: modal React opcional, integrado a `cosmemilton-ui`. Veja [a documentação do modal](packages/ui/README.md).
+- `native/`: fontes da ponte Rust `sitef-bridge.exe`. O executável deve ser compilado e provisionado separadamente; não acompanha o pacote npm.
 
-| Parte | Responsabilidade |
-| --- | --- |
-| `@cosmemilton/sitef` | Configuração, ciclo, callback, cancelamento, campos, journal e decisão explícita |
-| `@cosmemilton/sitef-ui` | Modal React opcional; exige `cosmemilton-ui` 4.1 e React |
-| `native/` | Executável Rust isolado, carregamento dinâmico, ABI e IPC privado |
+Use Node.js **>=22.18.0**, Windows x64, a ponte x64 e a **biblioteca de interface x64** fornecida pelo integrador, como `CliSiTef64I.dll`. A DLL interna `CliSiTef.dll` não substitui essa interface. Caminhos da ponte, biblioteca e diretórios operacionais são explícitos.
 
-A aplicação fornece o caminho absoluto da **biblioteca de interface**
-(`CliSiTef64I.dll`/`CliSiTefI.dll`, conforme o nome efetivo do kit x64) e seu diretório operacional.
-DLLs, SOs, INIs, chaves, certificados e PDFs do fabricante não acompanham os
-pacotes. Não há download automático desses arquivos.
+DLLs, INIs, certificados, chaves e manuais proprietários não são distribuídos nem baixados automaticamente. WSL/Linux serve ao desenvolvimento e aos testes sintéticos, não à execução de uma biblioteca SiTef de produção.
 
-## Preparação
+## Referência principal: exemplo simples Windows
 
-Node >=22.18, npm e Rust estável. No WSL:
+Comece por **[examples/windows-simple.mjs](examples/windows-simple.mjs)**. A função `main` mostra diretamente o fluxo:
+
+1. Preparar os callbacks e o registro de metadados da execução.
+2. Criar um `ClientSitef`, carregando e configurando a DLL **antes do primeiro menu**.
+3. Escolher uma operação, criar uma `Transaction` e executar `process(callbacks)`.
+4. Receber os dados, apresentar os comprovantes e escolher confirmar, desfazer ou manter pendente.
+5. Reutilizar o cliente para outras operações e chamar `close()` ao encerrar.
+
+O arquivo usa auxiliares em `examples/cli/` para terminal, configuração, callbacks, comprovantes e persistência. Não é um arquivo autossuficiente para copiar isoladamente. O [guia do exemplo](docs/windows-simple.md) descreve configuração, entradas e limitações; o [guia de depuração](docs/vscode-windows-debug.md) explica o VS Code local do Windows.
+
+### Preparar o checkout
+
+No ambiente de desenvolvimento, instale as dependências e compile os pacotes:
 
 ```sh
-cd sitef-node
 npm ci --ignore-scripts
+npm run build
+```
+
+Compile a ponte conforme [native/README.md](native/README.md). No layout padrão do exemplo:
+
+```text
+%USERPROFILE%\Documents\SiTefDevelopment\
+  sitef-bridge.exe
+  runtime\7.0.117.123.r2-win64\
+    CliSiTef64I.dll
+    [demais arquivos autorizados do kit do integrador]
+```
+
+`SITEF_ROOT` e `SITEF_RUNTIME` permitem escolher outros diretórios. Edite o objeto `configuration` no início de `examples/windows-simple.mjs` para definir servidor, loja, terminal e parâmetros do ambiente autorizado antes de executar. Os valores padrão são ilustrativos e não garantem um ambiente financeiro simulado.
+
+No PowerShell, na raiz do checkout, usando **Node Windows x64**:
+
+```powershell
+node .\examples\windows-simple.mjs
+```
+
+O exemplo simples **não aceita opções**: não há `--help`, `--verificar`, `--diagnostico` ou `--funcao`. Executá-lo carrega a DLL. Para verificações e modos avançados, use a [CLI completa opcional](docs/windows-cli.md), em `examples/windows-cli.mjs`. A ferramenta `examples/windows-reconcile.mjs` continua disponível para reconciliação explícita, não automática.
+
+### Inicialização, uma vez
+
+Trecho literal do exemplo:
+
+```js
+connection = cliConnection({ root, directory, configuration, io,
+  createTransport, onStateChange: state.onStateChange });
+// A DLL e carregada/configurada aqui, uma vez, antes do primeiro menu.
+client = await ClientSitef.create({ ...connection.options,
+  initialPinpadMessage: env.SITEF_PINPAD_MESSAGE });
+```
+
+`cliConnection` monta os caminhos absolutos, a configuração e os hooks usados pelo exemplo. `createCallbacks(io)` implementa a interação de terminal. Na sua aplicação, forneça essas opções diretamente a `ClientSitef.create` e substitua os callbacks pela sua interface. Importe a API pública de `@cosmemilton/sitef`; o exemplo importa `packages/core/dist/index.js` porque roda dentro do checkout.
+
+### Uma transação por operação
+
+Trecho literal do laço principal:
+
+```js
+const selection = await collectFunctionInput(io, undefined, { signal });
+if (!selection) break;
+const input = transactionInput(selection, env, documents);
+transaction = client.createTransaction(input, { signal,
+  ...(input.functionId === 110 ? { requiresFinalization: 'review-receipts' } : {}) });
+result = await transaction.process(callbacks);
+io.write('Retorno ' + result.status + ': ' + classifyReturn(result.status).message);
+```
+
+`transactionInput` gera dados fiscais ilustrativos. Um PDV deve usar cupom, data, hora, operador e valor da venda real. Valores monetários são strings decimais, nunca floats. A API aceita `operation: Operations.Credit`, por exemplo, ou `functionId`, sem limitar funções futuras a uma lista fechada.
+
+`result.data` preserva os campos recebidos, inclusive desconhecidos, repetições e bytes originais. `result.fields` e `result.details` oferecem visões compatíveis e semânticas. Falhas podem disponibilizar dados parciais, sem fabricar um resultado completo. Veja [campos e resultados](docs/field-results.md).
+
+### Decisão explícita
+
+Entre o processamento e este trecho, o exemplo apresenta `result.details.receipts` usando `displayReceipt`. A apresentação concluída conta como **impressão simulada em tela**, não como impressão física. O bloco de decisão é:
+
+```js
+if (result.status === 0 && result.requiresFinalization && input.functionId !== 110 && !signal.aborted) {
+  const decision = await interactiveFinalizationDecision(io, signal)(result);
+  if (!signal.aborted && decision === 'confirm') {
+    await transaction.confirm();
+    io.write('Confirmacao retornou localmente.');
+  } else if (!signal.aborted && decision === 'undo') {
+    await transaction.undo();
+    io.write('Desfazimento retornou localmente.');
+  } else io.write('Mantida pendente; nenhuma finalizacao enviada.');
+}
+transaction.dispose(); // Libera referencias, sem decidir pendencias.
+```
+
+O menu gerencial 110 exige revisão específica e não recebe finalização genérica por ter devolvido comprovantes. Na fachada `ClientSitef`, os padrões são `finalizationResponsibility: 'automation'` e `receiptStoragePolicy: 'explicit-return'`: a automação deve cumprir as obrigações do produto antes de confirmar. As guardas de status, alcance, sincronização, impressão imediata e revisão gerencial continuam válidas.
+
+A função nativa de finalização é `void`: retorno local não comprova confirmação bancária remota. Não confirme em `finally`, não repita operações incertas e não transforme um retorno desconhecido em sucesso.
+
+### Encerramento e pendências
+
+No bloco de limpeza, o exemplo contém:
+
+```js
+if (client) await client.close();
+else if (failure?.cleanupFailed) await connection?.closeTransport();
+```
+
+Esse trecho está dentro de tratamento de erro; a implementação completa também libera referências, fecha o registro de metadados e remove o listener de Ctrl+C. Consulte o arquivo antes de adaptar sua limpeza. **Não há confirmação nem desfazimento no encerramento.**
+
+`dispose()` libera a transação; não fecha o cliente nem decide pagamentos. `close()` fecha o transporte quando não há operação em execução e é permitido com pendências. Pendência anterior não bloqueia uma nova operação, mas duas operações não podem se sobrepor na mesma instância. Uma conexão dessincronizada deve ser fechada e reaberta antes de consultar ou decidir, sem repetir a operação incerta.
+
+A aplicação controla persistência durável, restauração e reconciliação. O exemplo grava somente metadados desta execução em `state/automation`, sem recuperar ou alterar registros anteriores. Não apague registros ou locks para contornar pendências. Veja [estado e recuperação](docs/application-state.md).
+
+## Limites e segurança
+
+- Os callbacks recebem as solicitações nativas. Comandos sem implementação falham explicitamente. O exemplo de terminal não implementa todos os fluxos de QR; uma interface apropriada precisa tratar esses comandos.
+- Todas as entradas de teclado do exemplo simples são visíveis. PIN de cartão pertence ao pinpad. Não grave nem compartilhe a sessão do terminal.
+- Exibir comprovantes não imprime fisicamente, captura assinatura ou homologa um fluxo. Impressora, assinatura em papel quando exigida, fechamento fiscal e entrega pertencem à automação.
+- Nunca registre PIN, PAN, trilhas, chaves, campos livres, comprovantes ou um dump de `result.data` em logs. Snapshots não substituem armazenamento protegido dos dados que o produto exigir.
+- Ctrl+C solicita cancelamento cooperativo. Timeout, crash, modal fechado ou processo encerrado não comprovam cancelamento financeiro.
+- O modal React roda no frontend; o SDK e a ponte ficam no host Node. Use IPC restrito no Electron ou transporte autenticado em uma integração web. Não exponha chamadas nativas genéricas ao navegador.
+
+## Documentação técnica
+
+- [Cliente, transações, callbacks e migração](docs/client-transactions.md)
+- [Campos tipados, dados completos e resultados parciais](docs/field-results.md)
+- [Estado da aplicação e recuperação](docs/application-state.md)
+- [Semântica e obrigações por produto](docs/semantic-flows.md)
+- [Arquitetura](docs/architecture.md) e [protocolo da ponte](docs/bridge-protocol.md)
+- [Cobertura do protocolo](docs/protocol-coverage.md) e [estado da implementação](docs/implementation-status.md)
+- [Validação](docs/validation.md), [preparação da publicação](docs/releasing.md) e [changelog](CHANGELOG.md)
+
+A API anterior `SitefClient`/`createSitef` permanece disponível. Consultas, seletores fiscais e recuperação explícita também podem ser acessados por `client.advanced`; consulte os guias antes de migrar suas políticas de persistência e finalização.
+
+## Verificação local
+
+Na raiz, usando Node/npm e Rust do ambiente escolhido:
+
+```sh
 npm run check
 cargo test --manifest-path native/Cargo.toml
 python3 native/tests/smoke.py
 npm run test:integration
 ```
 
-Use Node/npm **Linux** no WSL. Se o shell estiver encontrando o npm Windows em
-`/mnt/c`, carregue sua instalação nvm (`source ~/.nvm/nvm.sh; nvm use 24`) antes
-dos comandos. O executável Linux detectado neste ambiente é Node 24.15.0.
+Os testes nativos usam fixtures C próprias. Não são homologação, não validam uma ABI Linux de produção e não autorizam executar uma operação financeira. O template em [ci/](ci/README.md) não significa que uma execução de CI tenha ocorrido.
 
-Para Windows x64, compile `native` com o alvo `x86_64-pc-windows-msvc` e a toolchain
-MSVC/Windows SDK x64. No WSL, use `bash scripts/build-windows-x64.sh`. O executável
-da ponte é nosso; as bibliotecas do SiTef continuam externas. Node Windows x64 e
-ponte x64 se comunicam por stdio. A ponte x86 foi retirada do suporte.
+## Origem e licença
 
-## Integração por callback
+Implementação original baseada na documentação do fornecedor: [introdução](https://dev.softwareexpress.com.br/docs/sitef-interface-simplificada/introducao/), [rotinas](https://dev.softwareexpress.com.br/en/docs/clisitef/api_rotinas_disponiveis/) e [configuração](https://dev.softwareexpress.com.br/docs/clisitef/configuracao_biblioteca/). O catálogo usa VRS-258 e carteiras 1.43 do kit documental x86; as capacidades do binário x64 devem ser verificadas em runtime. Não há promessa de cobertura universal de produtos ou versões.
 
-O atalho `createSitef({bridgeExecutable,bridgeDirectory,libraryPath,stateDirectory,
-configuration,interaction})` faz carregamento, handshake e journal com chave fixa
-por loja/terminal. O exemplo abaixo mostra as mesmas etapas explicitamente para
-deixar visível a configuração de cada parte.
+[node-sitef](https://github.com/ddanielcruz/node-sitef) foi referência arquitetural; nenhum código dele ou código Delphi foi incorporado. A ponte Rust tem este repositório como fonte canônica. Clientes relacionados: [Python](https://github.com/cosmemilton/sitef-python) e [PHP](https://github.com/cosmemilton/sitef-php).
 
-```ts
-import {BridgeTransport, FileJournal, SitefClient, classifyReturn} from '@cosmemilton/sitef';
-
-const transport = new BridgeTransport({
-  executable: 'C:\\meu-pdv\\bridge\\sitef-bridge.exe',
-  cwd: 'C:\\meu-pdv\\bridge',
-});
-await transport.call('load', {
-  libraryPath: 'C:\\meu-pdv\\sitef\\CliSiTef64I.dll',
-  workingDirectory: 'C:\\meu-pdv\\sitef',
-  nativeEncoding: 'windows-1252', // confirmar o encoding no kit utilizado
-});
-const client = await SitefClient.connect({
-  transport,
-  configuration: {
-    server: '127.0.0.1', storeId: '00000000', terminalId: 'AA000001',
-    reserved: 0,
-    additionalParameters: '[ParametrosDoFornecedor=valor]',
-  },
-  // Sempre o mesmo arquivo para o mesmo terminal, em disco local persistente.
-  journal: new FileJournal('C:\\meu-pdv\\estado\\00000000-AA000001.journal.json'),
-  fields: {
-    hooks: {
-      // Implementações da aplicação; true somente após concluir a obrigação.
-      storeReceipt: (receipt, context) => meusComprovantes.salvar(receipt, context),
-      loadReceipt: (reference, context) => meusComprovantes.carregar(reference, context),
-      printReceipt: (receipt, context) => minhaImpressora.imprimir(receipt, context),
-    },
-  },
-  interaction: async (request, {signal}) => {
-    // Sua tela recebe comando, TipoCampo, mínimo, máximo e buffer integral.
-    // Implemente também o fallback explícito para novos comandos.
-    return minhaTela.interagir(request, {signal});
-  },
-});
-const result = await client.transact({
-  functionId: 0, amount: '10,00', fiscalDocument: '123456',
-  fiscalDate: '20261030', fiscalTime: '120000', operator: 'Operador',
-  additionalParameters: '',
-});
-console.log(classifyReturn(result.status).message); // nunca registrar campos/recibos
-if (result.requiresFinalization) {
-  // Esta é uma decisão da aplicação, depois de gravar seu fechamento fiscal.
-  const fiscalGravado = await meuPDV.gravarFechamento(result.transactionId);
-  await client.finalize(fiscalGravado);
-}
-await client.close();
-```
-
-O exemplo contém pontos de integração `minhaTela` e `meuPDV`, não uma aplicação
-pronta. `examples/synthetic.mjs` é executável sem SiTef para demonstrar o ciclo.
-Não usar os parâmetros fictícios acima como configuração de produção.
-
-`amount` é texto decimal com duas casas; pode ser vazio quando o produto coleta
-o valor durante a operação. Nunca convertemos valores financeiros por float.
-`additionalParameters` é repassado integralmente na configuração, início e
-finalização. Extensões permanecem abertas. Os seletores reservados de finalização
-usam `finalizePayment`, `finalizeNetwork` e `finalizeWithPayments`, que mantêm o
-journal coerente com o alcance da chamada nativa.
-
-## Integração pelo nosso modal
-
-Use o mesmo contrato com `createSitefModal()` e `<SitefModal controller={...} />`
-de `@cosmemilton/sitef-ui`. O pacote exige `cosmemilton-ui`; o núcleo não exige
-React nem biblioteca visual. Consulte `packages/ui/README.md`.
-
-Node não possui DOM: o modal roda no frontend/Electron. Em aplicação web, o
-integrador fornece um canal autenticado, com autorização por sessão. Em Electron,
-use IPC restrito no preload e mantenha o bridge no processo principal. Não exponha
-`transport.call`, `libraryPath`, `nativeStart` nem objetos Node ao navegador.
-
-Erros e avisos visuais usam `CmToastNotice`, sem deslocar o conteúdo da página.
-As mensagens de operação e coletas permanecem no modal porque fazem parte da
-interação requerida pelo protocolo. Dados de pagamento sensíveis pertencem ao
-pinpad e às rotinas específicas do fabricante.
-
-## Ciclo e recuperação
-
-- O retorno `10000` mantém o ciclo. O SDK preserva status, comando, TipoCampo,
-  mínimo, máximo e bytes originais; o comando 0 é ecoado sem alterar os bytes.
-- Comando 23 é polling e não espera a tela. `onExchange` observa inclusive dados e
-  polling; observadores de polling devem ser rápidos e não recebem backpressure.
-- O callback pode retornar `buffer`, `bufferBase64` e `continueFlag`
-  `-1 | 0 | 1 | 2 | 10000`. `10000` exige o procedimento de coleta prévia
-  documentado, com exibição e confirmação pelo operador; não é confirmação padrão.
-- Comando desconhecido chega ao callback. O modal exige `onUnsupported` explícito
-  ou o SDK solicita cancelamento cooperativo. Não há aceitação silenciosa.
-- `cancel()`/`AbortSignal` enviam `Continua=-1` e continuam até o retorno terminal.
-  Fechar o modal ou matar um processo não comprova desfazimento financeiro.
-- Retorno zero do ciclo e decisão fiscal são etapas separadas. Funções financeiras
-  aguardam `finalize(true|false)`; consultas usam `runFunction(functionId)` sem criar
-  pagamento financeiro. Uma política conhecida não pode ser invertida; função nova
-  exige `requiresFinalization` explícito.
-- `FinalizaFuncaoSiTefInterativo` é `void`: `returned:true` atesta só que a chamada
-  local retornou. A API não inventa confirmação bancária remota.
-- Antes da operação e da decisão, o SDK grava um journal mínimo com cupom/data/hora
-  originais. O journal V2 contém o grupo, pagamentos, decisões, hashes e referências
-  de comprovantes; os corpos dos comprovantes não são gravados nele. NFPAG é salvo
-  por `storeFinalizationPayload` e restaurado por hash, fora do journal financeiro.
-  Não inclua segredos nos demais parâmetros adicionais.
-- Crash, timeout ou falha de persistência após entrar na DLL mantêm o estado incerto.
-  Não há repetição automática de cobrança. Consulte `pendingCount`, modalidades
-  130/131 e os procedimentos do produto antes de uma decisão de recuperação.
-- `finalizeRecovery` exige o id persistido, preserva decisão/escopo já gravados e
-  pressupõe reconciliação feita pela aplicação. Não é um mecanismo de consulta.
-
-O lock é por arquivo: configure um caminho único e fixo por loja/terminal e não
-execute outro processo que acesse o mesmo terminal por fora do SDK. Após crash,
-não removemos um lock automaticamente. Verifique que o processo anterior acabou,
-inspecione o journal e consulte pendências antes de liberar o lock. `close()` não
-fecha sessão em execução ou aguardando decisão; cancele/decida primeiro.
-
-Para vários pagamentos, use `transact(input, {appendPayment:true})` após o primeiro.
-A finalização agrupa cada cupom/data, mantendo a hora original e persistindo o plano
-completo antes da primeira chamada nativa. `finalizePayment` seleciona o índice 161;
-`finalizeNetwork` exige rede resolvida para todos os pendentes. NFPAG anexa dados a
-um pagamento, mas finaliza todos os pagamentos do mesmo cupom/data, conforme o manual.
-Uma falha parcial preserva quais partições já retornaram localmente. A retomada
-executa somente o plano ainda pendente.
-
-`queryPendingTransactions()` (130) e a variante com `{fiscalDocument,fiscalDate}`
-(131) funcionam também durante recuperação, sem sobrescrever o journal financeiro.
-Journals V1 são migrados com obrigações externas desconhecidas; confirmação exige
-`attestLegacyObligations`, enquanto o desfazimento continua disponível.
-
-## API avançada e cobertura
-
-`client.capabilities()` enumera os símbolos disponíveis no kit. `callNative()`
-permite rotinas auxiliares tipadas, preservando seus domínios de retorno.
-`pendingCount` recebe `{fiscalDate,fiscalDocument}`; retorno positivo é quantidade,
-não negação. `validateBarcode(data)` pode ser chamado durante a coleta.
-
-Rotinas que iniciam outro ciclo usam `transact(input, {nativeStart:{method,params}})`:
-`startBanking`, `readSecureCard`, `readTrack3`, `readPassword` e `readChip`.
-Nos leitores, a finalização fiscal é desativada por padrão. `readPassword` recebe
-`{securityKey}` conforme contrato proprietário, não uma senha digitada em HTML.
-As mesmas regras de cancelamento, serialização e journal são aplicadas. Em
-`startBanking`, identificadores fiscais são sempre os de `input`.
-
-O catálogo cobre os comandos e retornos enumerados nos manuais VRS-258 e carteiras
-1.43 do kit x86 recebido, por serem mais recentes. O binário usado é o do kit x64;
-as capacidades são verificadas no runtime, sem supor paridade entre versões.
-Não é a lista universal de produtos/versões do SiTef: os documentos
-remetem a manuais adicionais ausentes. Campos, modalidades e códigos permanecem
-abertos. Confira a matriz em `docs/protocol-coverage.md` e o protocolo nativo em
-`native/README.md`; rotinas ainda não verificadas são identificadas explicitamente.
-
-## Fontes e origem
-
-Implementação original baseada nos manuais fornecidos e na documentação oficial:
-
-- [Interface CliSiTefI e restrições de acesso](https://dev.softwareexpress.com.br/docs/sitef-interface-simplificada/introducao/)
-- [Rotinas e ABI](https://dev.softwareexpress.com.br/en/docs/clisitef/api_rotinas_disponiveis/)
-- [Configuração](https://dev.softwareexpress.com.br/docs/clisitef/configuracao_biblioteca/)
-- [Arquivos de controle](https://dev.softwareexpress.com.br/docs/clisitef/arquivos_de_controle/)
-- [Interoperabilidade Windows x86/x64](https://learn.microsoft.com/en-us/windows/win32/winprog64/process-interoperability)
-
-O [node-sitef indicado](https://github.com/ddanielcruz/node-sitef) foi estudado como
-referência arquitetural. Nenhum arquivo ou código dele foi reutilizado. Nenhum
-código Delphi foi incorporado. A licença deste novo projeto está a definir;
-pacotes marcados `UNLICENSED` não devem ser publicados até essa definição.
-
-Clientes da mesma família: [Python](https://github.com/cosmemilton/sitef-python)
-e [PHP](https://github.com/cosmemilton/sitef-php). A fonte canônica da ponte Rust é
-este repositório. Cada cliente conserva uma cópia dos fontes para build independente,
-com versão e hash registrados; as bibliotecas do fornecedor continuam externas.
+**Licença atual: `UNLICENSED`.** Não há concessão de licença open source. Distribuir no npm não altera essa condição nem concede direitos sobre o kit proprietário. A publicação exige revisão explícita de direitos, acesso e conteúdo dos pacotes.

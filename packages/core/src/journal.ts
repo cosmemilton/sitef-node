@@ -20,7 +20,17 @@ export class FileJournal implements Journal {
     if (this.lease)
       throw new SitefError('TERMINAL_LOCKED', 'Journal já está em uso.');
     await mkdir(dirname(this.file), { recursive: true, mode: 0o700 });
-    this.lease = await open(this.file + '.lock', 'wx', 0o600);
+    try {
+      this.lease = await open(this.file + '.lock', 'wx', 0o600);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST')
+        throw new SitefError(
+          'TERMINAL_LOCKED',
+          'Journal bloqueado por lock existente, que pode estar ativo ou órfão. Verifique a sessão e reconcilie o estado antes de liberar o terminal; não remova o lock automaticamente.',
+          { cause: error }
+        );
+      throw error;
+    }
     try {
       await this.lease.writeFile(
         JSON.stringify({

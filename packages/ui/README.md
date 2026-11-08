@@ -1,6 +1,6 @@
 # Modal de interação CliSiTef
 
-A versão 0.2.0 recebe os DTOs semânticos do engine `@cosmemilton/sitef` 0.2.0. O controller usa o validador puro e compatível com navegador de `@cosmemilton/sitef/fields`, sem carregar Node, DLL ou filesystem no renderer.
+A versão 0.3.0 recebe os DTOs semânticos do engine `@cosmemilton/sitef` 0.3.0. O controller usa o validador puro e compatível com navegador de `@cosmemilton/sitef/fields`, sem carregar Node, DLL ou filesystem no renderer.
 
 Pacote opcional React. O pacote Node `@cosmemilton/sitef` funciona com callbacks próprios sem instalar UI. Quem escolhe este modal instala obrigatoriamente `cosmemilton-ui@^4.1.0`, React e ReactDOM. `@iconify/react` também é declarado peer porque o entrypoint interativo da cosmemilton-ui 4.1.0 o importa ao montar o bundle, mesmo para componentes sem ícones. A biblioteca do fornecedor continua sendo fornecida pelo integrador no host Node.
 
@@ -27,3 +27,7 @@ No renderer, conecte `createSitefModal` à interface restrita do transporte: ao 
 ## Validação
 
 `npm run check --workspace @cosmemilton/sitef-ui` compila a API React e testa o controller. A integração de produção ainda exige validação visual/teclado em claro e escuro, hardware e homologação SiTef, além de persistência/impressão de comprovantes e recuperação de pendências pela aplicação.
+
+## Distribuição e licença
+
+Licença atual: `UNLICENSED`. O pacote não inclui a ponte Rust nem a DLL proprietária. A interface não confirma pagamentos por conta própria. A preparação desta versão não comprova publicação no npm ou homologação financeira.

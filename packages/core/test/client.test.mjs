@@ -111,7 +111,6 @@ test('preserva campos repetidos e desconhecidos, reinicia buffers e finaliza com
   );
   assert.equal(seen[1].kind, 'unknown');
   assert.equal(client.state, 'awaiting-finalization');
-  await assert.rejects(client.transact(input), { code: 'SESSION_BUSY' });
   const continuations = transport.calls.filter((c) => c.method === 'continue');
   assert.equal(continuations[2].params.buffer, 'A');
   assert.equal(continuations.at(-1).params.continueFlag, 10000);
@@ -187,9 +186,9 @@ test('falha nativa mantém journal incerto e proíbe nova venda', async () => {
     uncertain: true
   });
   assert.equal(journal.record.state, 'uncertain');
-  await assert.rejects(client.transact(input), { code: 'SESSION_BUSY' });
+  await assert.rejects(client.transact(input), { code: 'RECONNECT_REQUIRED' });
   await assert.rejects(client.callNative('pinpad'), {
-    code: 'RECOVERY_REQUIRED'
+    code: 'RECONNECT_REQUIRED'
   });
   await client.close();
 });
@@ -273,7 +272,11 @@ test('journal em disco é atômico, exclusivo e não guarda dados coletados', as
       undefined,
       { journal: a }
     );
-    await assert.rejects(b.acquire(), { code: 'EEXIST' });
+    await assert.rejects(b.acquire(), (error) => {
+      assert.equal(error.code, 'TERMINAL_LOCKED');
+      assert.equal(error.cause?.code, 'EEXIST');
+      return true;
+    });
     await client.transact(input);
     assert.equal((await readFile(path, 'utf8')).includes('SENSITIVE'), false);
     await client.finalize(false);

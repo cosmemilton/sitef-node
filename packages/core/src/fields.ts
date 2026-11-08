@@ -1032,7 +1032,12 @@ export class FieldProcessor {
       const monetaryFormat = this.options.monetaryFormats?.[id];
       if (monetaryFormat)
         value = exactDecimal(exchange.buffer, 2, monetaryFormat);
-      if (definition?.resolverRequired && this.options.hooks?.resolveField) {
+      // Documented informational outputs must not require an application
+      // interpretation to acknowledge command 0. Optional resolvers may enrich
+      // the typed value, but never replace the original native echo bytes.
+      const optionalResolver = typeof definition?.action === 'object' &&
+        definition.action.optionalHook === 'resolveField';
+      if ((definition?.resolverRequired || optionalResolver) && this.options.hooks?.resolveField) {
         const resolved = await this.options.hooks.resolveField(
           request,
           this.context
@@ -1074,13 +1079,17 @@ export class FieldProcessor {
           billIndex: this.billIndex,
           printed: false
         };
+        // Retain the original receipt even when application delivery or printing fails.
+        this.snapshot.receipts.push(receipt);
+        await this.notifyReceipt(receipt);
+        // Cancellation of observation must not start printing or storage.
+        if (this.context.signal.aborted) return request;
         if (timing === 'immediate') {
           await this.required('printReceipt', receipt);
           receipt.printed = true;
         }
         if (this.options.receiptStoragePolicy !== 'explicit-return')
           await this.required('storeReceipt', receipt);
-        this.snapshot.receipts.push(receipt);
       }
       if ([4100, 4039, 5049, 5084].includes(id)) {
         const diagnostic = { fieldType: id, value: exchange.buffer };
@@ -1157,6 +1166,29 @@ export class FieldProcessor {
     }
     if (exchange.command === 30 || exchange.command === 34) this.precision = 2;
     return request;
+  }
+  private async notifyReceipt(receipt: Receipt): Promise<void> {
+    const { signal } = this.context;
+    if (!this.options.hooks?.onReceipt || signal.aborted) return;
+    let onAbort!: () => void;
+    const aborted = new Promise<void>((resolve) => {
+      onAbort = () => resolve();
+      signal.addEventListener('abort', onAbort, { once: true });
+    });
+    try {
+      // Promise.race observes late rejections even after cancellation wins.
+      await Promise.race([
+        Promise.resolve().then(() => {
+          if (!signal.aborted)
+            return this.options.hooks?.onReceipt?.(
+              Object.freeze({ ...receipt }), this.context
+            );
+        }),
+        aborted
+      ]);
+    } finally {
+      signal.removeEventListener('abort', onAbort);
+    }
   }
   async required(
     name: keyof NonNullable<FieldOptions['hooks']>,
@@ -1260,17 +1292,26 @@ export class FieldProcessor {
       assessment.installmentFallback = this.values.get(field) !== '1';
       if (assessment.installmentFallback) {
         assessment.issues.push('INSTALLMENT_FALLBACK');
-        await this.required('acceptFallback', assessment);
+        // In automation mode the final explicit decision owns this review.
+        // A configured hook still runs and its real failure is not suppressed.
+        if (this.options.finalizationResponsibility !== 'automation' ||
+            this.options.hooks?.acceptFallback)
+          await this.required('acceptFallback', assessment);
       }
     }
     if (assessment.issues.length) {
       if (!this.options.hooks?.validateTransaction) assessment.accepted = false;
-      else
+      else {
         assessment.accepted =
           (await this.options.hooks.validateTransaction(
             assessment,
             this.context
           )) === true;
+        // Distinguish an explicit configured application veto from an absent
+        // reviewer. A later automation-mode decision must not erase that veto.
+        if (!assessment.accepted)
+          assessment.issues.push('TRANSACTION_REJECTED_BY_APPLICATION');
+      }
     }
     if (
       assessment.productConstraints.some(

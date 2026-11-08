@@ -903,17 +903,17 @@
       "description": "Informa disponibilidade de parcelamento pelo lojista.",
       "dataType": "enum",
       "action": {
-        "kind": "enum-handoff",
-        "requiredHook": "resolveField",
-        "phase": "beforeInterpretation"
+        "kind": "enum-output",
+        "optionalHook": "resolveField",
+        "phase": "optionalInterpretation"
       },
       "origin": {
         "document": "VRS-258",
         "section": "5.3.2",
         "page": 40
       },
-      "resolverRequired": true,
-      "notes": "O campo indica habilitação; a tabela consultada não define neste item a codificação completa dos valores."
+      "resolverRequired": false,
+      "notes": "Indicador de habilitacao retornado pelo SiTef no comando 0. Preservar o codigo bruto e continuar sem coleta; a tabela nao enumera os valores. Interpretacao especifica pode ser fornecida opcionalmente por resolveField, sem alterar o eco do buffer nativo."
     },
     "171": {
       "name": "menor_quantidade_de_parcelas_pelo_lojista",
@@ -970,17 +970,17 @@
       "description": "Informa disponibilidade de parcelamento pela administradora.",
       "dataType": "enum",
       "action": {
-        "kind": "enum-handoff",
-        "requiredHook": "resolveField",
-        "phase": "beforeInterpretation"
+        "kind": "enum-output",
+        "optionalHook": "resolveField",
+        "phase": "optionalInterpretation"
       },
       "origin": {
         "document": "VRS-258",
         "section": "5.3.2",
         "page": 40
       },
-      "resolverRequired": true,
-      "notes": "O campo indica habilitação; a tabela consultada não define neste item a codificação completa dos valores."
+      "resolverRequired": false,
+      "notes": "Indicador de habilitacao retornado pelo SiTef no comando 0. Preservar o codigo bruto e continuar sem coleta; a tabela nao enumera os valores. Interpretacao especifica pode ser fornecida opcionalmente por resolveField, sem alterar o eco do buffer nativo."
     },
     "175": {
       "name": "menor_quantidade_de_parcelas_pela_administradora",
@@ -3554,68 +3554,68 @@
       "description": "Informa habilitação de crédito parcelado com plano.",
       "dataType": "enum",
       "action": {
-        "kind": "enum-handoff",
-        "requiredHook": "resolveField",
-        "phase": "beforeInterpretation"
+        "kind": "enum-output",
+        "optionalHook": "resolveField",
+        "phase": "optionalInterpretation"
       },
       "origin": {
         "document": "VRS-258",
         "section": "5.3.2",
         "page": 44
       },
-      "resolverRequired": true,
-      "notes": "O campo indica habilitação; a tabela consultada não define neste item a codificação completa dos valores."
+      "resolverRequired": false,
+      "notes": "Indicador de habilitacao retornado pelo SiTef no comando 0. Preservar o codigo bruto e continuar sem coleta; a tabela nao enumera os valores. Interpretacao especifica pode ser fornecida opcionalmente por resolveField, sem alterar o eco do buffer nativo."
     },
     "725": {
       "name": "habilitacao_de_credito_autorizado_a_vista",
       "description": "Informa habilitação de crédito autorizado à vista.",
       "dataType": "enum",
       "action": {
-        "kind": "enum-handoff",
-        "requiredHook": "resolveField",
-        "phase": "beforeInterpretation"
+        "kind": "enum-output",
+        "optionalHook": "resolveField",
+        "phase": "optionalInterpretation"
       },
       "origin": {
         "document": "VRS-258",
         "section": "5.3.2",
         "page": 44
       },
-      "resolverRequired": true,
-      "notes": "O campo indica habilitação; a tabela consultada não define neste item a codificação completa dos valores."
+      "resolverRequired": false,
+      "notes": "Indicador de habilitacao retornado pelo SiTef no comando 0. Preservar o codigo bruto e continuar sem coleta; a tabela nao enumera os valores. Interpretacao especifica pode ser fornecida opcionalmente por resolveField, sem alterar o eco do buffer nativo."
     },
     "726": {
       "name": "habilitacao_de_credito_autorizado_parcelado_com_plano",
       "description": "Informa habilitação de crédito autorizado parcelado com plano.",
       "dataType": "enum",
       "action": {
-        "kind": "enum-handoff",
-        "requiredHook": "resolveField",
-        "phase": "beforeInterpretation"
+        "kind": "enum-output",
+        "optionalHook": "resolveField",
+        "phase": "optionalInterpretation"
       },
       "origin": {
         "document": "VRS-258",
         "section": "5.3.2",
         "page": 44
       },
-      "resolverRequired": true,
-      "notes": "O campo indica habilitação; a tabela consultada não define neste item a codificação completa dos valores."
+      "resolverRequired": false,
+      "notes": "Indicador de habilitacao retornado pelo SiTef no comando 0. Preservar o codigo bruto e continuar sem coleta; a tabela nao enumera os valores. Interpretacao especifica pode ser fornecida opcionalmente por resolveField, sem alterar o eco do buffer nativo."
     },
     "727": {
       "name": "habilitacao_de_venda_por_boleto",
       "description": "Informa habilitação de venda por boleto.",
       "dataType": "enum",
       "action": {
-        "kind": "enum-handoff",
-        "requiredHook": "resolveField",
-        "phase": "beforeInterpretation"
+        "kind": "enum-output",
+        "optionalHook": "resolveField",
+        "phase": "optionalInterpretation"
       },
       "origin": {
         "document": "VRS-258",
         "section": "5.3.2",
         "page": 44
       },
-      "resolverRequired": true,
-      "notes": "O campo indica habilitação; a tabela consultada não define neste item a codificação completa dos valores."
+      "resolverRequired": false,
+      "notes": "Indicador de habilitacao retornado pelo SiTef no comando 0. Preservar o codigo bruto e continuar sem coleta; a tabela nao enumera os valores. Interpretacao especifica pode ser fornecida opcionalmente por resolveField, sem alterar o eco do buffer nativo."
     },
     "729": {
       "name": "maior_montante_admitido_no_pagamento",
@@ -6879,17 +6879,17 @@
       "description": "Informa habilitação de parcelamento por crediário.",
       "dataType": "enum",
       "action": {
-        "kind": "enum-handoff",
-        "requiredHook": "resolveField",
-        "phase": "beforeInterpretation"
+        "kind": "enum-output",
+        "optionalHook": "resolveField",
+        "phase": "optionalInterpretation"
       },
       "origin": {
         "document": "VRS-258",
         "section": "5.3.2",
         "page": 50
       },
-      "resolverRequired": true,
-      "notes": "O campo indica habilitação; a tabela consultada não define neste item a codificação completa dos valores."
+      "resolverRequired": false,
+      "notes": "Indicador de habilitacao retornado pelo SiTef no comando 0. Preservar o codigo bruto e continuar sem coleta; a tabela nao enumera os valores. Interpretacao especifica pode ser fornecida opcionalmente por resolveField, sem alterar o eco do buffer nativo."
     },
     "2975": {
       "name": "menor_quantidade_de_parcelas_do_crediario",

@@ -306,8 +306,7 @@ test('NFPAG validates enabled methods, sums, cheque origin and destination restr
 test('appending a declined payment retains the previously approved pending payment', async () => {
   const { sdk, journal } = await client([[step(161, '0')], [{ status: 57 }]]);
   await sdk.transact(input);
-  await assert.rejects(sdk.transact(input), { code: 'SESSION_BUSY' });
-  const second = await sdk.transact(input, { appendPayment: true });
+  const second = await sdk.transact(input);
   assert.equal(second.status, 57);
   assert.equal(sdk.state, 'awaiting-finalization');
   assert.equal(journal.record.payments[0].state, 'awaiting-finalization');
@@ -315,35 +314,26 @@ test('appending a declined payment retains the previously approved pending payme
   await sdk.finalize(false);
   await sdk.close();
 });
-test('midnight groups persist all decisions before the first partition and recover only unfinished partitions', async () => {
-  const { sdk, transport, journal } = await client([
-    [step(161, '0')],
-    [step(161, '0')]
-  ]);
-  await sdk.transact(input);
-  await sdk.transact(
-    {
-      ...input,
-      fiscalDocument: '101',
-      fiscalDate: '20261031',
-      fiscalTime: '000010'
-    },
-    { appendPayment: true }
-  );
-  transport.failFinish = 2;
-  await assert.rejects(sdk.finalize(true), { code: 'FINALIZATION_UNCERTAIN' });
-  const plan = journal.writes.find(
-    (record) =>
-      record.payments.length === 2 &&
-      record.payments.every((p) => p.state === 'finalizing')
-  );
-  assert.ok(plan);
-  assert.equal(journal.record.payments[0].state, 'finalized-local');
-  assert.equal(journal.record.payments[1].state, 'uncertain');
-  await sdk.finalizeRecovery(true, sdk.recovery.id);
-  assert.equal(transport.calls.filter((c) => c.method === 'finish').length, 3);
-  assert.equal(transport.calls.at(-1).params.fiscalDate, '20261031');
+test('different fiscal scopes require explicit decisions and reconnect before recovery', async () => {
+  const { sdk, transport, journal } = await client([[step(161,'0')],[step(161,'0')]]);
+  const first = await sdk.transact(input);
+  const second = await sdk.transact({...input,fiscalDocument:'101',fiscalDate:'20261031',fiscalTime:'000010'});
+  await assert.rejects(sdk.finalize(true),{code:'FINALIZATION_SCOPE_REQUIRED'});
+  assert.equal(transport.finishCount,0);
+  await sdk.finalizeTransaction(true,first.transactionId);
+  transport.failFinish=2;
+  await assert.rejects(sdk.finalizeTransaction(true,second.transactionId),{code:'FINALIZATION_UNCERTAIN'});
+  assert.ok(journal.writes.some(r=>r.payments[0].state==='finalized-local'&&r.payments[1].state==='finalizing'));
+  assert.equal(journal.record.payments[0].state,'finalized-local');
+  assert.equal(journal.record.payments[1].state,'uncertain');
+  await assert.rejects(sdk.finalizeRecovery(true,sdk.recovery.id),{code:'RECONNECT_REQUIRED'});
   await sdk.close();
+  const native=new Native();
+  const recovered=await SitefClient.connect({transport:native,journal,configuration:config,interaction:async()=>({}),fields:{hooks}});
+  await recovered.finalizeRecovery(true,recovered.recovery.id,undefined,{transactionId:second.transactionId});
+  assert.equal(transport.finishCount,2);assert.equal(native.finishCount,1);
+  assert.equal(native.calls.at(-1).params.fiscalDate,'20261031');
+  assert.equal(recovered.state,'idle');await recovered.close();
 });
 test('selective finalization never widens scope to a sibling payment', async () => {
   const { sdk, transport } = await client([[step(161, '0')], [step(161, '1')]]);
@@ -366,7 +356,11 @@ test('pending details remain available during uncertain state without mutating t
   await sdk.transact(input);
   transport.failFinish = 1;
   await assert.rejects(sdk.finalize(false), { code: 'FINALIZATION_UNCERTAIN' });
-  transport.query = [
+  await assert.rejects(sdk.queryPendingTransactions(),{code:'RECONNECT_REQUIRED'});
+  await sdk.close();
+  const nextTransport=new Native();
+  const recovered=await SitefClient.connect({transport:nextTransport,journal,configuration:config,interaction:async()=>({}),fields:{hooks}});
+  nextTransport.query = [
     step(210, '1'),
     step(160, '100'),
     step(161, '0'),
@@ -377,12 +371,12 @@ test('pending details remain available during uncertain state without mutating t
   ];
   const before = structuredClone(journal.record),
     count = journal.writes.length;
-  const result = await sdk.queryPendingTransactions();
+  const result = await recovered.queryPendingTransactions();
   assert.equal(result.transactions[0].paymentIndex, '0');
   assert.equal(result.transactions[0].amount, '50,00');
   assert.deepEqual(journal.record, before);
   assert.equal(journal.writes.length, count);
-  await sdk.close();
+  await recovered.close();
 });
 test('nonfinancial functions use an ephemeral cycle and cannot accidentally request financial finalization', async () => {
   const { sdk, journal, transport } = await client([[]]);
@@ -493,35 +487,43 @@ test('NFPAG persists only an external payload reference and recovery rejects a c
     journal.record.payments[0].finalizationParameters,
     '{NumeroPagamentoNFPAG=0}'
   );
+  await assert.rejects(sdk.finalizeRecovery(false,sdk.recovery.id),{code:'RECONNECT_REQUIRED'});
+  await sdk.close();
+  const nextTransport=new Native();
+  const recovered=await SitefClient.connect({transport:nextTransport,journal,configuration:config,interaction:async()=>({}),fields});
   const original = payload.parameters;
   payload.parameters += 'tampered';
-  await assert.rejects(sdk.finalizeRecovery(false, sdk.recovery.id), {
+  await assert.rejects(recovered.finalizeRecovery(false, recovered.recovery.id), {
     code: 'FINALIZATION_PAYLOAD_MISMATCH'
   });
   assert.equal(transport.finishCount, 1);
   payload.parameters = original;
-  await sdk.finalizeRecovery(false, sdk.recovery.id);
-  assert.equal(sdk.state, 'idle');
-  await sdk.close();
+  await recovered.finalizeRecovery(false, recovered.recovery.id);
+  assert.equal(recovered.state, 'idle');
+  assert.equal(nextTransport.finishCount,1);
+  await recovered.close();
 });
 
 test('selective recovery retains an unrelated awaiting payment', async () => {
-  const { sdk, transport } = await client([[step(161, '0')], [step(161, '1')]]);
+  const { sdk, transport, journal } = await client([[step(161, '0')], [step(161, '1')]]);
   const first = await sdk.transact(input);
   await sdk.transact(input, { appendPayment: true });
   transport.failFinish = 1;
   await assert.rejects(sdk.finalizePayment(false, first.transactionId), {
     code: 'FINALIZATION_UNCERTAIN'
   });
-  await sdk.finalizeRecovery(false, sdk.recovery.id);
+  await sdk.close();
+  const nextTransport=new Native();
+  const recovered=await SitefClient.connect({transport:nextTransport,journal,configuration:config,interaction:async()=>({}),fields:{hooks}});
+  await recovered.finalizeRecovery(false,recovered.recovery.id);
   assert.equal(
-    transport.calls.filter((c) => c.method === 'finish').at(-1).params
+    nextTransport.calls.filter((c) => c.method === 'finish').at(-1).params
       .additionalParameters,
     '{NumeroPagamentoCupom=0}'
   );
-  assert.equal(sdk.state, 'awaiting-finalization');
-  await sdk.finalize(false);
-  await sdk.close();
+  assert.equal(recovered.state, 'awaiting-finalization');
+  await recovered.finalize(false);
+  await recovered.close();
 });
 
 test('V1 recovery requires explicit attestation of obligations before confirmation', async () => {
@@ -576,7 +578,7 @@ test('payload restoration holds the session lock across asynchronous application
       }
     }
   };
-  const { sdk, transport } = await client(
+  const { sdk, transport, journal } = await client(
     [[step(161, '0'), step(730, '0'), step(731, '00')]],
     { fields }
   );
@@ -591,14 +593,17 @@ test('payload restoration holds the session lock across asynchronous application
     ),
     { code: 'FINALIZATION_UNCERTAIN' }
   );
-  const recovery = sdk.finalizeRecovery(false, sdk.recovery.id);
+  await sdk.close();
+  const nextTransport=new Native();
+  const recovered=await SitefClient.connect({transport:nextTransport,journal,configuration:config,interaction:async()=>({}),fields});
+  const recovery = recovered.finalizeRecovery(false,recovered.recovery.id);
   await ready;
-  await assert.rejects(sdk.finalizeRecovery(false, sdk.recovery.id), {
+  await assert.rejects(recovered.finalizeRecovery(false, recovered.recovery.id), {
     code: 'INVALID_RECOVERY'
   });
   resume();
   await recovery;
-  await sdk.close();
+  await recovered.close();
 });
 
 test('NFPAG can collect payment methods from the provider without overwriting explicit methods', async () => {

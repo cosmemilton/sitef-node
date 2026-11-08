@@ -13,7 +13,7 @@ A referência usa exclusivamente os PDFs do kit x86: VRS-258 e Carteiras Digitai
 | Assinatura/recursos | 5074 após impressão; 5042/5043 com cleanup também em falhas |
 | Produtos | PBM, limites e fallback exigem validação externa quando necessária |
 | Contas | Agrupamento por índice, impressão imediata e cancelamento parcial contextual |
-| Múltiplos pagamentos | Journal V2, append explícito, partições por cupom/data e plano durável |
+| Múltiplos pagamentos | Estado V2 acumulado, nova transação sem append obrigatório, partições por cupom/data; persistência opcional |
 | Seleção | Índice 161/rede resolvida; recovery não alcança pagamentos irmãos |
 | NFPAG | Requisitos 730/731/732, soma exata, origem de cheque, redes, payload externo por hash |
 | Pendências | 130/131 em recuperação sem escrever no journal financeiro |
@@ -25,7 +25,10 @@ ponte Rust. Com a DLL simulada x64 foram verificados carregamento, capacidades,
 versão e configuração; nenhuma transação financeira foi homologada.
 
 A aplicação implementa hardware, armazenamento, assinatura e suas regras de produto.
-O SDK exige o cumprimento dos hooks; não fabrica uma impressão ou decisão comercial.
+A API anterior exige os hooks conforme sua política SDK. A fachada `ClientSitef`
+usa responsabilidade automation e retorno explícito por padrão, preservando
+as obrigações da aplicação e as guardas objetivas. Não fabrica impressão,
+assinatura ou decisão comercial. Veja [cliente e transações](client-transactions.md).
 Permanecem condicionadas ao fornecedor as rotinas diretas com callback cuja ABI é
 ambígua no PDF, manuais adicionais de produtos e o kit Linux. Há alternativas de
 leitura pelo laço interativo. Veja [a matriz nativa](protocol-coverage.md) e

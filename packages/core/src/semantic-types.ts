@@ -26,6 +26,7 @@ export interface FieldDefinition {
     | {
         kind: string;
         requiredHook?: string;
+        optionalHook?: string;
         phase?: string;
         [key: string]: unknown;
       }
@@ -144,6 +145,11 @@ export type SideEffectHook = (
   context: FieldContext
 ) => boolean | Promise<boolean>;
 export interface FieldHooks {
+  /** Awaited before continuation; delivery does not attest physical printing. */
+  onReceipt?: (
+    receipt: Readonly<Receipt>,
+    context: FieldContext
+  ) => void | Promise<void>;
   printReceipt?: (
     receipt: Receipt,
     context: FieldContext
@@ -203,6 +209,16 @@ export interface FieldHooks {
 }
 export interface FieldOptions {
   hooks?: FieldHooks;
+  /**
+   * Defaults to sdk: review, deferred printing and required signature use hooks.
+   * automation: finalize(true) is the application's explicit product decision
+   * after it has fulfilled receipt printing/delivery and signature obligations.
+   * The SDK exposes those obligations but does not perform or attest them, and
+   * never marks receipts printed or signatures captured on the caller's behalf.
+   * Immediate printing, objective violations and protocol safety still apply.
+   * onReceipt observes delivery only and never satisfies a printing obligation.
+   */
+  finalizationResponsibility?: 'sdk' | 'automation';
   nativeEncoding?: 'windows-1252' | 'utf-8' | 'ascii';
   receiptStoragePolicy?: 'persist' | 'explicit-return';
   confirmationNetworkField?: 131 | 158;

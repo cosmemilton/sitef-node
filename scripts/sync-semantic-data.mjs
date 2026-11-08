@@ -4,3 +4,6 @@ for(const name of ['fields','functions']){
   await mkdir(new URL('../packages/core/src/data/',import.meta.url),{recursive:true});
   await writeFile(new URL(`../packages/core/src/data/${name}.json`,import.meta.url),content);
 }
+
+const { generateFieldIds } = await import('./generate-field-ids.mjs');
+await generateFieldIds();

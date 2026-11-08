@@ -27,6 +27,7 @@ const paymentKeys = new Set([
   'network',
   'finalizationParameters',
   'confirmationAllowed',
+  'finalizationResponsibility',
   'assessmentIssues',
   'receipts',
   'signatureRequired',
@@ -76,7 +77,7 @@ export function normalizeJournal(value: unknown): GroupJournalRecord {
         }
       ]
     : source.payments;
-  if (!Array.isArray(payments) || !payments.length || payments.length > 10000)
+  if (!Array.isArray(payments) || !payments.length)
     throw new SitefError('JOURNAL_INVALID', 'Lista de pagamentos inválida.');
   const seen = new Set<string>();
   for (const payment of payments) {
@@ -99,6 +100,9 @@ export function normalizeJournal(value: unknown): GroupJournalRecord {
         'JOURNAL_INVALID',
         'Journal contém dados fora dos metadados permitidos.'
       );
+    if (payment.finalizationResponsibility !== undefined &&
+        !['sdk', 'automation'].includes(payment.finalizationResponsibility))
+      throw new SitefError('JOURNAL_INVALID', 'Responsabilidade de finalização inválida.');
     if (payment.decision !== undefined && ![0, 1].includes(payment.decision))
       throw new SitefError('JOURNAL_INVALID', 'Decisão persistida inválida.');
     if (

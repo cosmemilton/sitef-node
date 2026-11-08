@@ -1,0 +1,112 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node.exe",
+      "cwd": "${env:USERPROFILE}\\Documents\\SiTefDevelopment",
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart",
+      "stopOnEntry": true,
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/packages/core/dist/**/*.js"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "autoAttachChildProcesses": false,
+      "name": "SiTef: verificar arquivos (sem DLL)",
+      "program": "${workspaceFolder}/examples/windows-cli.mjs",
+      "args": [
+        "--verificar"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/core/dist/**",
+        "**/packages/core/dist/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node.exe",
+      "cwd": "${env:USERPROFILE}\\Documents\\SiTefDevelopment",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "stopOnEntry": true,
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/packages/core/dist/**/*.js"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "autoAttachChildProcesses": false,
+      "preLaunchTask": "SiTef: compilar TypeScript (debug)",
+      "name": "SiTef: CLI interativa (Windows)",
+      "program": "${workspaceFolder}/examples/windows-cli.mjs",
+      "args": [],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/core/dist/**",
+        "**/packages/core/dist/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node.exe",
+      "cwd": "${env:USERPROFILE}\\Documents\\SiTefDevelopment",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "stopOnEntry": true,
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/packages/core/dist/**/*.js"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "autoAttachChildProcesses": false,
+      "preLaunchTask": "SiTef: compilar TypeScript (debug)",
+      "name": "SiTef: inspecionar journal (somente leitura)",
+      "program": "${workspaceFolder}/examples/windows-reconcile.mjs",
+      "args": [
+        "--inspecionar"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/core/dist/**",
+        "**/packages/core/dist/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node.exe",
+      "cwd": "${env:USERPROFILE}\\Documents\\SiTefDevelopment",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "stopOnEntry": true,
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/packages/core/dist/**/*.js"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "autoAttachChildProcesses": false,
+      "preLaunchTask": "SiTef: compilar TypeScript (debug)",
+      "name": "SiTef: exemplo simples (Windows)",
+      "program": "${workspaceFolder}/examples/windows-simple.mjs",
+      "args": [],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/core/dist/**",
+        "**/packages/core/dist/**",
+        "!**/node_modules/**"
+      ]
+    }
+  ]
+}

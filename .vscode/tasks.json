@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "SiTef: compilar TypeScript (debug)",
+      "type": "process",
+      "command": "node.exe",
+      "args": [
+        "${workspaceFolder}/scripts/build-debug.mjs"
+      ],
+      "options": {
+        "cwd": "${env:USERPROFILE}"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

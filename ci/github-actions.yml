@@ -11,13 +11,13 @@ jobs:
   contracts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-      - uses: actions/setup-python@v7.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
       - name: Install Rust stable
@@ -35,12 +35,21 @@ jobs:
           python3 native/tests/smoke_tcp.py
       - name: SDK to Rust to own C fixture
         run: node packages/core/test/native.integration.mjs
+      - name: Inspect publishable package contents (no publish)
+        run: npm run pack:check
   windows-x64-build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Windows synthetic SDK and CLI tests
+        run: npm run check
       - name: Install Rust x64 standard library
         run: rustup toolchain install stable --profile minimal --target x86_64-pc-windows-msvc
       - name: Compile Windows x64 helper without vendor libraries

@@ -130,3 +130,12 @@ compiles an original synthetic C shared library and tests actual process IPC;
 it never loads vendor binaries.
 `python3 tests/smoke_tcp.py` additionally verifies the opt-in socket handshake,
 nonce removal before FFI, and the same loop against our own synthetic fixture.
+
+## Distribution
+
+The npm packages do not bundle this executable or a proprietary runtime. Build
+and provision `sitef-bridge.exe` separately, then pass its absolute path to the
+SDK. The bridge version is independent of the npm package version; the protocol
+handshake and actual capabilities remain authoritative. npm release preparation
+does not imply a native binary release or financial homologation. See
+[release preparation](../docs/releasing.md).

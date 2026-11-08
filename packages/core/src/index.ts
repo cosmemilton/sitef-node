@@ -8,3 +8,9 @@ export * from './create.js';
 export * from './fields.js';
 export * from './decimal.js';
 export * from './semantic-types.js';
+export * from './field-results.js';
+
+export { getPartialTransaction } from './transaction-snapshot.js';
+export type { PartialTransaction } from './transaction-snapshot.js';
+
+export * from './transaction.js';

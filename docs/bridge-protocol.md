@@ -229,8 +229,7 @@ across Windows/Linux checkouts. Python/PHP may package this same data file.
 The snapshot includes metadata, context-specific return tables, continuation
 flags, commands, field aliases/ranges, events, function names and current INI/
 additional-parameter hints. These lists are not allowlists. The field-by-field
-VRS-258 audit identified 444 field entries; full semantics and product workflows
-remain TODO. Aliases, exported symbols and synthetic tests do not establish full
+VRS-258 audit identified 444 field entries; complete product coverage still requires additional vendor documentation and validation. Aliases, exported symbols and synthetic tests do not establish full
 implementation or homologation. The real supplier DLL has only been checked for
 load/configuration/version; no financial transaction or pinpad operation has been
 validated against it. See `implementation-status.md` and `validation.md`.

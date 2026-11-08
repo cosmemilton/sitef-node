@@ -1,17 +1,37 @@
 {
   "name": "sitef-node-workspace",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
+    "cli:windows": "node examples/windows-cli.mjs",
+    "cli:reconcile": "node examples/windows-reconcile.mjs",
     "build": "node scripts/sync-semantic-data.mjs && npm run build --workspace @cosmemilton/sitef && npm run build --workspace @cosmemilton/sitef-ui",
     "test": "node --test packages/core/test/*.test.mjs && npm test --workspace @cosmemilton/sitef-ui",
-    "check": "npm run build && npm test",
+    "check": "npm run build && npm test && npm run test:packaging",
     "build:native": "cargo build --manifest-path native/Cargo.toml",
     "test:native": "cargo test --manifest-path native/Cargo.toml",
-    "test:integration": "npm run build && cargo build --manifest-path native/Cargo.toml && node packages/core/test/native.integration.mjs"
+    "test:integration": "npm run build && cargo build --manifest-path native/Cargo.toml && node packages/core/test/native.integration.mjs",
+    "test:packaging": "node --test scripts/test/packaging.test.mjs",
+    "pack:check": "npm pack --dry-run --workspace @cosmemilton/sitef && npm pack --dry-run --workspace @cosmemilton/sitef-ui"
   },
-  "devDependencies": {"typescript": "^5.9.3", "@types/node": "^24.0.0"},
-  "engines": {"node": ">=22.18.0"}
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^24.0.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cosmemilton/sitef-node.git"
+  },
+  "homepage": "https://github.com/cosmemilton/sitef-node#readme",
+  "bugs": {
+    "url": "https://github.com/cosmemilton/sitef-node/issues"
+  },
+  "license": "UNLICENSED"
 }
