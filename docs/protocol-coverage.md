@@ -2,7 +2,7 @@
 
 Referências auditadas: documentação fornecida pelo integrador, **Interface Simplificada VRS-258** e **Carteiras Digitais 1.43**. As páginas abaixo se referem à numeração impressa. A conferência posterior dos 444 IDs da seção 5.3.2 com VRS-260 e as consultas pontuais citadas nos guias não representam auditoria semântica completa dessa revisão. Os documentos, suas extrações e as bibliotecas do fornecedor não são distribuídos neste projeto.
 
-**O runtime suportado é somente Windows x64.** A referência de protocolo continua sendo exclusivamente os dois PDFs do kit x86 já auditados. Os PDFs do pacote x64 foram apenas identificados no inventário do ZIP e não foram abertos, extraídos ou incorporados como fonte desta especificação. A convenção `stdcall` descrita na referência x86 não significa pilha x86 no runtime: a ponte usa a ABI de sistema Windows x64, com ponteiros de 64 bits, `short` de 16 e `int`/`long` de 32 bits.
+**Os alvos de runtime são Windows x64 e Linux glibc i686, este último em preparação na 0.4.0.** A referência de protocolo continua sendo exclusivamente os dois PDFs do kit x86 já auditados. Os PDFs do pacote x64 foram apenas identificados no inventário do ZIP e não foram abertos, extraídos ou incorporados como fonte desta especificação. A convenção `stdcall` descrita na referência Windows x86 não significa pilha x86 no Windows x64: nesse alvo, a ponte usa a ABI de sistema Windows x64, com ponteiros de 64 bits, `short` de 16 e `int`/`long` de 32 bits. No Linux i686 usa ABI C e ponteiros/`int`/`long` de 32 bits; a biblioteca deve ser ELF32. Node x64 pode iniciar essa ponte isolada, mas uma ponte Linux x64 não substitui a i686. Consulte [distribuição](bridge-distribution.md) para requisitos e limites.
 
 ## Compatibilidade do simulador Windows x64
 
@@ -48,7 +48,7 @@ Este SDK começou com a interface binária documentada, implementada de forma in
 | `ValidaCampoCodigoEmBarras` | `validateBarcode` | dados, tipo do documento de saída | Implementada; domínio de retorno próprio | 75–76 |
 | `ObtemVersao` | `version` | versões da biblioteca e interface de saída | Implementada | 77 |
 | `DescarregaMensagens` | `flushMessages` | sem argumentos | Implementada; 0 significa que todas foram descarregadas | 78 |
-| `ObtemInformacoesPinPad` | `pinpadInfo` | saída TLV | Implementada com área de 20.000 bytes; função 775 pelo laço é alternativa; limite de saída não está explícito no manual | 78–79 |
+| `ObtemInformacoesPinPad` | `pinpadInfo` | saída TLV | Chamada direta bloqueada com `UNVERIFIED_OUTPUT_BOUND`; função 775 pelo laço é alternativa; limite de saída não está explícito no manual | 78–79 |
 
 As variantes **ASCII com sufixo `A`** são interfaces alternativas documentadas e permanecem **pendentes de exposição direta**. A ponte utiliza as variantes binárias equivalentes e representa seus argumentos explicitamente; ela não depende de strings numéricas de tamanho fixo da interface ASCII. Variantes explicitamente mostradas no manual: `ConfiguraIntSiTefInterativoA`, `ConfiguraIntSiTefInterativoExA`, `IniciaFuncaoSiTefInterativoA`, `IniciaFuncaoAASiTefInterativoA`, `ContinuaFuncaoSiTefInterativoA`, `FinalizaFuncaoSiTefInterativoA`, `ObtemQuantidadeTransacoesPendentesA`, `EscreveMensagemPermanentePinPadA`, `LeCartaoSeguroA`, `LeCartaoDiretoSeguroA`, `LeCartaoDiretoSeguroExA`, `LeTrilhaChipInterativoA`, `LeSenhaInterativoA`, `LeSenhaDiretoA`, `LeSimNaoPinPadA`, `CorrespondenteBancarioSiTefInterativoA`, `ValidaCampoCodigoEmBarrasA` e `ObtemVersaoA`. As versões diretas ASCII de leitura de cartão não recebem callback segundo as tabelas; não assumir paridade binária de assinatura.
 
@@ -95,7 +95,7 @@ O laço termina somente quando o **retorno da função** é diferente de `10000`
 
 ## Material necessário para completar a matriz de homologação
 
-1. Headers oficiais Windows x64 da versão fornecida, para confirmar as assinaturas e os limites das rotinas auxiliares; o runtime suportado nesta etapa é exclusivamente Windows x64.
+1. Headers oficiais Windows x64 e Linux i686 das versões fornecidas, para confirmar assinaturas e limites das rotinas auxiliares. Carga, configuração e versão do kit Linux32 foram verificadas; isso não comprova toda a ABI nem homologa os fluxos.
 2. Lista de Parâmetros Adicionais atualizada, Tabela de Mensagens e documentos dos produtos contratados. Os manuais fornecidos fazem referência a esses documentos e não os incorporam integralmente.
 3. Especificação de captura de senha proprietária, dados de produtos e Soft Descriptor, quando usados.
 4. Headers Windows das funções diretas com callbacks e resolução da inconsistência de `TamDadosOut`.

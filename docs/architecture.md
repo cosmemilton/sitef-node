@@ -46,12 +46,22 @@ para chamadas por ponteiros e toolchain cruzada. Nenhuma linguagem elimina
 falhas dentro da biblioteca externa. Por isso o processo isolado é uma decisão
 mais importante que a linguagem da ponte.
 
-Um addon no processo Node deixaria seu processo sujeito a falhas nativas. O runtime
-é exclusivamente Windows x64: Node, ponte Rust e bibliotecas do integrador usam
-x64. A ponte separada continua útil para conter falhas e serializar o acesso.
-O WSL é o ambiente de desenvolvimento; não se afirma suporte nativo Linux a partir
-de uma DLL Windows. O kit x86 é usado somente como fonte dos PDFs mais recentes;
-não há suporte de execução x86 e os PDFs do kit x64 não são referência do projeto.
+Um addon no processo Node deixaria seu processo sujeito a falhas nativas.
+No Windows x64, Node, ponte e interface do integrador usam x64. No Linux glibc,
+Node/Electron x64 ou ia32 inicia uma ponte **i686** que carrega a biblioteca
+Linux32 em seu próprio processo. A arquitetura da ponte segue a biblioteca,
+não necessariamente Node. A ponte separada também contém falhas e serializa
+o acesso. Não há execução de DLL Windows no Linux.
+
+O core resolve um pacote opcional por plataforma ou respeita um caminho manual
+explícito. Os dois pacotes contêm apenas a ponte própria; o kit do fornecedor
+permanece separado. Veja [distribuição e configuração](bridge-distribution.md).
+
+A referência documental continua baseada nos PDFs do kit Windows x86; PDFs
+do kit Windows x64 não são fonte do projeto. O alvo Linux i686 usa ABI C,
+ponteiros de 32 bits e long de 32 bits. Uma ponte Linux x64 com long de 64 bits
+não é substituta. Não há suporte a Windows x86, Linux ARM/musl ou biblioteca
+Linux64 nesta distribuição.
 
 ## Limites e responsabilidades
 
@@ -87,9 +97,11 @@ retorno, UI e uma ABI C original. O smoke do kit real cobre carregamento, invent
 de símbolos, versão e configuração; não executa pagamento nem homologa produto.
 
 A matriz `protocol-coverage.md` lista rotinas implementadas, alternativas ASCII,
-interfaces obsoletas e assinaturas que ainda dependem dos headers. O kit Linux,
-documentos de produtos, lista adicional de parâmetros e tabela de mensagens são
-necessários para concluir a cobertura e executar uma homologação abrangente.
+interfaces obsoletas e assinaturas que ainda dependem dos headers. O kit Linux32
+fornecido já permite validação limitada de carga/configuração/versão. Headers
+oficiais das versões, documentos de produtos, lista adicional de parâmetros e
+tabela de mensagens continuam necessários para concluir a cobertura e executar
+uma homologação abrangente.
 
 O estado V2 conserva vários pagamentos, inclusive de cupons/datas diferentes.
 Pendência anterior não impede outro ciclo; operação nativa ativa e conexão

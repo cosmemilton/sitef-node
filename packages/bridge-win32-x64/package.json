@@ -1,0 +1,33 @@
+{
+  "name": "@cosmemilton/sitef-bridge-win32-x64",
+  "version": "0.4.0",
+  "description": "Owned isolated CliSiTef bridge; vendor SDK not included",
+  "license": "MIT",
+  "main": "index.cjs",
+  "exports": "./index.cjs",
+  "files": [
+    "bin",
+    "index.cjs",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.txt"
+  ],
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "scripts": {
+    "prepack": "node ../../scripts/bridge-package.mjs validate win32-x64"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cosmemilton/sitef-node.git",
+    "directory": "packages/bridge-win32-x64"
+  }
+}

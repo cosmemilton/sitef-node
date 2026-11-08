@@ -35,6 +35,15 @@ Importe `ClientSitef`, `Operations`, `TransactionControl` e os tipos
 - `initialPinpadMessage` é opcional. Quando fornecida, chama a mensagem permanente
   do pinpad depois de configurar; exige retorno local 0. Não é chamada a cada
   transação nem comprova o que apareceu fisicamente no equipamento.
+- `await client.escreverMensagemPinpad(mensagem)` escreve a mesma mensagem
+  permanente depois da inicialização e devolve `{ status: number }`, preservando
+  inclusive retornos não zero do fornecedor. A aplicação deve verificar o status;
+  retorno local 0 não comprova o conteúdo exibido fisicamente.
+  Aceita texto sem NUL, usa a codificação nativa configurada e rejeita status
+  inválido. Não pode rodar durante uma operação ou em sessão fechada/dessincronizada.
+  Também rejeita estado uncertain por falha de persistência após retorno conhecido,
+  preservando os dados de recuperação até a reconciliação.
+  Não confirma, desfaz nem altera uma transação pendente.
 - `fields` aceita os hooks e políticas existentes. A fachada usa por padrão
   `finalizationResponsibility:'automation'` e `receiptStoragePolicy:'explicit-return'`.
   Valores explicitamente fornecidos, inclusive `'sdk'`/`'persist'`, prevalecem.

@@ -24,4 +24,8 @@ transaction.process({ menu: () => 1 });
 new ClientSitef(options);
 await transaction.confirm();
 transaction.dispose();
+const pinpadMessage: { status: number } = await client.escreverMensagemPinpad('READY');
+void pinpadMessage;
+// @ts-expect-error Pinpad text must be a string.
+client.escreverMensagemPinpad(123);
 await client.close();

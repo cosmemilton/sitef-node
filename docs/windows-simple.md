@@ -7,10 +7,13 @@
 No PowerShell, na raiz do checkout, com Node Windows x64 e o runtime já preparado:
 
 ```powershell
+node .\scripts\build-debug.mjs
 node .\examples\windows-simple.mjs
 ```
 
 No VS Code **local do Windows**, abra a raiz do checkout (pasta Windows ou UNC) e escolha **SiTef: exemplo simples (Windows)**. Coloque breakpoints na `main`, `transaction.process`, `transaction.confirm` ou `transaction.undo`; use F10/F11. A ponte Rust e a DLL são processos/código nativo separados da depuração JavaScript.
+
+O build de debug prepara o pacote local da bridge Windows 0.4.0 a partir do artefato próprio já staged no checkout, sem depender da publicação npm. O exemplo deixa a seleção e o caminho da bridge com o componente: não procura mais sitef-bridge.exe em SITEF_ROOT. Não compila nem carrega o kit do fornecedor durante o preparo.
 
 O simples não tem modos de verificação, diagnóstico, ajuda ou execução única. Não recebe opções de linha de comando. Flags antigas são rejeitadas para não carregar a DLL por engano. As opções avançadas continuam no exemplo completo.
 
@@ -20,8 +23,8 @@ Edite o objeto `configuration` no início de `examples/windows-simple.mjs` para 
 
 - `SITEF_OPERATOR`: operador; padrão `DEV`.
 - `SITEF_TRANSACTION_PARAMS`: parâmetros completos da operação. O exemplo simples usa `configuration.additionalParameters` para os parâmetros de configuração, não `SITEF_CONFIG_PARAMS`.
-- `SITEF_PINPAD_MESSAGE`: mensagem permanente inicial opcional.
-- `SITEF_ROOT`: pasta da ponte e dos registros. Padrão `%USERPROFILE%\Documents\SiTefDevelopment`.
+- `SITEF_PINPAD_MESSAGE`: substitui a constante `PINPAD_MESSAGE = 'CAIXA DISPONIVEL'`. O mesmo texto é enviado na criação e após cada tentativa concluída com sessão segura.
+- `SITEF_ROOT`: pasta dos registros e base do runtime padrão; não define a bridge. Padrão `%USERPROFILE%\Documents\SiTefDevelopment`.
 - `SITEF_RUNTIME`: pasta da DLL. Padrão `runtime\7.0.117.123.r2-win64` dentro da pasta acima.
 
 Pinpad: configuração do INI do runtime. Cupom/data/hora vêm da função auxiliar `transactionInput`; um PDV real deve fornecer seus próprios dados fiscais.
@@ -39,3 +42,23 @@ Pinpad: configuração do INI do runtime. Cupom/data/hora vêm da função auxil
 Os auxiliares existentes cuidam de terminal, interação e recursos do protocolo; não há `runSession` escondendo o fluxo. QR ou comandos sem implementação falham explicitamente como no exemplo completo.
 
 Testes em `packages/core/test/cli-simple.test.mjs` usam SDK real com transporte falso e diretórios temporários. Não executam a DLL do fornecedor nem equivalem à homologação.
+
+
+## Mensagem permanente do pinpad
+
+A constante PINPAD_MESSAGE fica junto da configuração no início do exemplo.
+A criação usa initialPinpadMessage; após processar a operação e a eventual
+decisão de confirmar/desfazer/manter pendente, o exemplo chama
+client.escreverMensagemPinpad(pinpadMessage). O método usa
+EscreveMensagemPermanentePinPad e retorna o status nativo.
+
+A restauração ocorre também após retorno não zero ou cancelamento concluído.
+Só é tentada com sessão idle ou awaiting-finalization: uma pendência financeira
+não é confirmada nem desfeita por escrever a mensagem. Não há chamada em sessão
+ativa, fechada ou incerta, inclusive após timeout de transação/finalização.
+
+Na criação, status não zero falha a inicialização. Depois de uma transação,
+status não zero da mensagem é mostrado como aviso, sem alterar seu resultado.
+Uma exceção de transporte interrompe o exemplo; se já havia um erro da transação,
+esse erro original é preservado. Não há repetição automática. Retorno 0 é aceite
+local da função, não verificação visual do equipamento.

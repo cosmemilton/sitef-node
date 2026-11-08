@@ -14,3 +14,5 @@ export { getPartialTransaction } from './transaction-snapshot.js';
 export type { PartialTransaction } from './transaction-snapshot.js';
 
 export * from './transaction.js';
+
+export * from './bridge-resolution.js';

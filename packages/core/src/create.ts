@@ -1,3 +1,4 @@
+import { resolveBridge } from './bridge-resolution.js';
 import { initializationCleanupFailure } from './initialization.js';
 import { join, isAbsolute } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -13,16 +14,20 @@ export interface CreateSitefOptions extends Omit<
 > {
   /** Injectable transport; loading and configuration still run exactly once here. */
   transportFactory?: (options: BridgeOptions) => Transport | Promise<Transport>;
-  bridgeExecutable: string;
-  bridgeDirectory: string;
+  /** Defaults to the optional platform bridge package. Explicit paths take priority. */
+  bridgeExecutable?: string;
+  /** Defaults to the directory containing the resolved bridge. */
+  bridgeDirectory?: string;
   libraryPath: string;
   workingDirectory?: string;
+  /** Environment overrides only for the bridge child, e.g. Linux LD_LIBRARY_PATH. */
+  bridgeEnv?: Record<string, string>;
   /** Legacy explicit opt-in to FileJournal. Prefer a journal adapter or onStateChange. */
   stateDirectory?: string;
   nativeEncoding?: 'windows-1252' | 'utf-8' | 'ascii';
   timeoutMs?: number;
   maxFrameBytes?: number;
-  /** Exclusivo para bibliotecas sintéticas; não habilita suporte/homologação Linux. */
+  /** Exclusivo para bibliotecas sintéticas; nunca equivale a homologação. */
   testMode?: boolean;
 }
 
@@ -44,8 +49,8 @@ export async function createSitef(
       (options.initialState && (options.journal || options.stateDirectory !== undefined)))
     throw new SitefError('INVALID_OPTIONS', 'Escolha apenas journal, stateDirectory ou initialState.');
   const supplied = await (options.transportFactory ?? ((bridgeOptions: BridgeOptions) => new BridgeTransport(bridgeOptions)))({
-    executable: options.bridgeExecutable,
-    cwd: options.bridgeDirectory,
+    ...resolveBridge(options),
+    env: options.bridgeEnv,
     timeoutMs: options.timeoutMs,
     maxFrameBytes: options.maxFrameBytes
   });
@@ -60,6 +65,8 @@ export async function createSitef(
       protocolVersion: number;
       platform: string;
       architecture: string;
+      fieldTypeBytes?: number;
+      runtimeTarget?: string;
     }>('load', {
       libraryPath: options.libraryPath,
       ...(options.workingDirectory === undefined
@@ -81,10 +88,12 @@ export async function createSitef(
         'UNSUPPORTED_ARCHITECTURE',
         'A ponte Windows precisa ser x64.'
       );
-    if (capabilities.platform !== 'windows' && !options.testMode)
+    if (!options.testMode && capabilities.platform !== 'windows' &&
+        !(capabilities.platform === 'linux' && capabilities.architecture === 'x86' &&
+          capabilities.fieldTypeBytes === 4 && capabilities.runtimeTarget === 'linux-ia32'))
       throw new SitefError(
         'UNSUPPORTED_PLATFORM',
-        'Runtime de produção disponível somente para Windows x64.'
+        'Use ponte Windows x64 ou Linux i686 com ABI de campos de 32 bits.'
       );
     const terminalKey = createHash('sha256')
       .update(
