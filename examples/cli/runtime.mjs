@@ -65,7 +65,7 @@ export async function checkDevelopmentFiles(root, runtimeDirectory) {
 
 async function requireFile(path, code, label) {
   try {
-    if (!(await stat(path)).isFile()) throw new Error('Not a file');
+    if (!(await stat(path)).isFile()) throw new Error('O caminho não é um arquivo');
   } catch {
     throw Object.assign(new Error(label + ' nao encontrada ou inacessivel: ' + path),
       { code, path, stage: 'preflight' });
@@ -93,7 +93,7 @@ export async function preflightTerminal(journalFile) {
   let record;
   try {
     const info = await lstat(journalFile);
-    if (!info.isFile() || info.isSymbolicLink()) throw new Error('Invalid record file');
+    if (!info.isFile() || info.isSymbolicLink()) throw new Error('Arquivo de registro inválido');
     record = await new FileJournal(journalFile).read();
   } catch (error) {
     if (error.code !== 'ENOENT') warnings.push({ code: 'RECORD_INVALID', path: journalFile });

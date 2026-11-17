@@ -9,7 +9,7 @@ import type {
   FinalizationResult, SessionState, GroupJournalRecord
 } from './types.js';
 
-/** Friendly aliases, not a whitelist: operation/functionId still accept any int32. */
+/** Aliases legíveis, não uma lista de permissão: operation/functionId continuam aceitando qualquer int32. */
 export const Operations = Object.freeze({
   Payment: 0, Debit: 2, Credit: 3, Administrative: 110,
   CommunicationTest: 111, WalletPayment: 122, WalletCancellation: 123
@@ -27,36 +27,36 @@ export interface DisplayRequest extends UiRequest {
 export interface CollectionRequest extends UiRequest { secret: boolean; }
 type MaybePromise<T> = T | Promise<T>;
 type Callback<Request, Response> = (request: Readonly<Request>, context: CallbackContext) => MaybePromise<Response>;
-/** Explicit protocol controls, also accepted by menu/collect/confirm callbacks. */
+/** Controles explícitos do protocolo, também aceitos pelos callbacks menu/collect/confirm. */
 export const TransactionControl = Object.freeze({
   CANCEL: Object.freeze({ continueFlag: -1 } as const satisfies UiResponse),
   BACK: Object.freeze({ continueFlag: 1 } as const satisfies UiResponse)
 });
 export interface TransactionCallbacks {
   display?: Callback<DisplayRequest, void | UiResponse>;
-  /** Return the native option ID, never its visual position or label. */
+  /** Retorne o ID nativo da opção, nunca sua posição visual ou rótulo. */
   menu?: Callback<UiRequest, string | UiResponse>;
   collect?: Callback<CollectionRequest, string | UiResponse>;
-  /** Native question only: true -> buffer 0, false -> buffer 1. Not fiscal finalization. */
+  /** Apenas pergunta nativa: true -> buffer 0, false -> buffer 1. Não é finalização fiscal. */
   confirm?: Callback<UiRequest, boolean | UiResponse>;
-  /** Command 0 output and command 23 polling. Return values never become native input.
-   * Poll observers are asynchronous and must not block the native continuation loop. */
+  /** Saída do comando 0 e consulta periódica do comando 23. Valores retornados nunca viram entrada nativa.
+   * Observadores de consulta são assíncronos e não devem bloquear o laço nativo de continuação. */
   event?: Callback<UiRequest, void>;
-  /** Awaited for each receipt before native continuation, without marking it printed.
-   * An existing fields.hooks.onReceipt takes precedence. */
+  /** Aguardado para cada comprovante antes da continuação nativa, sem marcá-lo como impresso.
+   * Um fields.hooks.onReceipt existente tem precedência. */
   receipt?: Callback<Receipt, void>;
-  /** Command 29; an existing fields.hooks.resolveApplicationData takes precedence. */
+  /** Comando 29; um fields.hooks.resolveApplicationData existente tem precedência. */
   application?: Callback<UiRequest, string | UiResponse>;
   acknowledge?: Callback<UiRequest, void | UiResponse>;
-  /** Commands 50/51/52. Showing a QR must return without awaiting the payment. */
+  /** Comandos 50/51/52. A exibição de QR deve retornar sem aguardar o pagamento. */
   qr?: Callback<UiRequest, void | UiResponse>;
-  /** Explicit escape hatch for unknown commands and custom interaction UIs. */
+  /** Alternativa explícita para comandos desconhecidos e interfaces de interação personalizadas. */
   raw?: Callback<UiRequest, UiResponse>;
 }
 export interface ClientSitefOptions extends Omit<CreateSitefOptions, 'interaction'> {
-  /** Default callbacks, also used by explicit advanced query/recovery operations. */
+  /** Callbacks padrão, também usados por operações avançadas explícitas de consulta/recuperação. */
   callbacks?: TransactionCallbacks;
-  /** Optional EscreveMensagemPermanentePinPad call after configuration; status must be 0. */
+  /** Chamada opcional de EscreveMensagemPermanentePinPad após a configuração; o status deve ser 0. */
   initialPinpadMessage?: string;
 }
 
@@ -64,10 +64,10 @@ function response(value: unknown, allowVoid = false): UiResponse {
   if (typeof value === 'string') return { buffer: value };
   if (value === undefined && allowVoid) return {};
   if (value !== null && typeof value === 'object' && !Array.isArray(value)) return value as UiResponse;
-  throw new SitefError('INVALID_RESPONSE', 'Callback must return the documented response type.');
+  throw new SitefError('INVALID_RESPONSE', 'O callback deve retornar o tipo de resposta documentado.');
 }
 function missing(request: UiRequest): never {
-  throw new SitefError('MISSING_INTERACTION_HANDLER', `No callback for native command ${request.command}.`);
+  throw new SitefError('MISSING_INTERACTION_HANDLER', `Nenhum callback definido para o comando nativo ${request.command}.`);
 }
 async function interact(callbacks: TransactionCallbacks, request: UiRequest, context: CallbackContext): Promise<UiResponse> {
   const code = request.command;
@@ -99,7 +99,7 @@ async function interact(callbacks: TransactionCallbacks, request: UiRequest, con
 
 const execute = Symbol('execute');
 
-/** One native connection per application, with transaction-local callbacks and cancellation. */
+/** Uma conexão nativa por aplicação, com callbacks e cancelamento locais à transação. */
 export class ClientSitef {
   #core: SitefClient;
   #defaults: Readonly<TransactionCallbacks>;
@@ -112,7 +112,7 @@ export class ClientSitef {
   static async create(options: ClientSitefOptions): Promise<ClientSitef> {
     if (options.initialPinpadMessage !== undefined &&
         (typeof options.initialPinpadMessage !== 'string' || options.initialPinpadMessage.includes('\0')))
-      throw new SitefError('INVALID_ARGUMENT', 'initialPinpadMessage must be text without NUL.');
+      throw new SitefError('INVALID_ARGUMENT', 'initialPinpadMessage deve ser texto sem NUL.');
     let client: ClientSitef | undefined;
     const defaults = Object.freeze({ ...options.callbacks });
     const finalizationResponsibility = options.fields?.finalizationResponsibility ?? 'automation';
@@ -147,7 +147,7 @@ export class ClientSitef {
       if (options.initialPinpadMessage !== undefined) {
         const result = await client.escreverMensagemPinpad(options.initialPinpadMessage);
         if (result.status !== 0)
-          throw new SitefError('PINPAD_MESSAGE_FAILED', 'Initial pinpad message was not accepted.', { nativeStatus: result.status });
+          throw new SitefError('PINPAD_MESSAGE_FAILED', 'A mensagem inicial do pinpad não foi aceita.', { nativeStatus: result.status });
       }
       return client;
     } catch (error) {
@@ -155,26 +155,26 @@ export class ClientSitef {
       throw error;
     }
   }
-  /** Full existing API: explicit pending queries, scoped finalization, recovery and extensions. */
+  /** API existente completa: consultas explícitas de pendências, finalização com escopo definido, recuperação e extensões. */
   get advanced(): SitefClient { return this.#core; }
   get state(): SessionState { return this.#core.state; }
   get recovery(): Readonly<GroupJournalRecord> | undefined { return this.#core.recovery; }
   createTransaction(input: ClientTransactionInput, options: TransactionOptions = {}): Transaction {
-    if (this.#core.state === 'closed') throw new SitefError('SESSION_CLOSED', 'Client is closed.');
+    if (this.#core.state === 'closed') throw new SitefError('SESSION_CLOSED', 'O cliente está fechado.');
     return new Transaction(this, input, options);
   }
-  /** Writes the permanent pinpad message while idle; preserves the native status, including nonzero returns. */
+  /** Escreve a mensagem permanente do pinpad enquanto ocioso; preserva o status nativo, inclusive retornos não zero. */
   async escreverMensagemPinpad(message: string): Promise<{ status: number }> {
     if (typeof message !== 'string' || message.includes('\0'))
-      throw new SitefError('INVALID_ARGUMENT', 'Pinpad message must be text without NUL.');
+      throw new SitefError('INVALID_ARGUMENT', 'A mensagem do pinpad deve ser texto sem NUL.');
     if (this.#active)
-      throw new SitefError('SESSION_BUSY', 'Pinpad message is unavailable during a transaction.');
+      throw new SitefError('SESSION_BUSY', 'A mensagem do pinpad não pode ser alterada durante uma transação.');
     if (this.#core.state === 'uncertain')
       throw new SitefError('RECONNECT_REQUIRED',
-        'Session is uncertain. Preserve recovery data and reconcile before writing a pinpad message.', { uncertain: true });
+        'A sessão está incerta. Preserve os dados de recuperação e reconcilie antes de escrever uma mensagem no pinpad.', { uncertain: true });
     const result = await this.#core.callNative<{ status: number }>('pinpadPermanentMessage', { message });
     if (!result || !Number.isInteger(result.status))
-      throw new SitefError('INVALID_NATIVE_RESULT', 'Invalid pinpad message status.');
+      throw new SitefError('INVALID_NATIVE_RESULT', 'Status inválido da mensagem do pinpad.');
     return result;
   }
   capabilities(): ReturnType<SitefClient['capabilities']> { return this.#core.capabilities(); }
@@ -185,7 +185,7 @@ export class ClientSitef {
   close(): Promise<void> { return this.#core.close(); }
   async [execute](transaction: Transaction, input: TransactionInput, options: TransactionOptions,
     callbacks: TransactionCallbacks, signal: AbortSignal): Promise<TransactionResult> {
-    if (this.#active || this.#core.isBusy) throw new SitefError('SESSION_BUSY', 'Another transaction is active.');
+    if (this.#active || this.#core.isBusy) throw new SitefError('SESSION_BUSY', 'Outra transação está ativa.');
     this.#active = { transaction, callbacks: Object.freeze({ ...this.#defaults, ...callbacks }), signal };
     try {
       return await this.#core.transact(input, { ...options, signal });
@@ -195,7 +195,7 @@ export class ClientSitef {
   }
 }
 
-/** A single attempt. Create a new object for a new operation; process never retries. */
+/** Uma única tentativa. Crie um novo objeto para uma nova operação; process nunca repete a tentativa. */
 export class Transaction {
   #client?: ClientSitef;
   #input?: TransactionInput;
@@ -209,7 +209,7 @@ export class Transaction {
   #status?: number;
   constructor(client: ClientSitef, input: ClientTransactionInput, options: TransactionOptions = {}) {
     if ('operation' in input && 'functionId' in input)
-      throw new SitefError('INVALID_ARGUMENT', 'Use operation or functionId, never both.');
+      throw new SitefError('INVALID_ARGUMENT', 'Use operation ou functionId, nunca ambos.');
     const { operation, ...native } = input;
     this.#input = Object.freeze({ ...native, functionId: operation ?? native.functionId! });
     this.#options = { ...options, ...(options.nativeStart ? {
@@ -219,7 +219,7 @@ export class Transaction {
   }
   get status(): number | undefined { return this.#status; }
   get result(): TransactionResult | undefined { return this.#result; }
-  /** Same snapshot as getPartialTransaction(error); never fabricate a complete result on failure. */
+  /** Mesmo retrato de estado de getPartialTransaction(error); nunca fabrique um resultado completo em caso de falha. */
   get partialResult(): PartialTransaction | undefined { return this.#partial; }
   get state(): TransactionState {
     if (['disposed', 'created', 'running', 'finalizing'].includes(this.#state)) return this.#state;
@@ -231,7 +231,7 @@ export class Transaction {
   }
   async process(callbacks: TransactionCallbacks = {}): Promise<TransactionResult> {
     if (this.#state !== 'created')
-      throw new SitefError('TRANSACTION_ALREADY_PROCESSED', 'A transaction is a single attempt. Create a new transaction.');
+      throw new SitefError('TRANSACTION_ALREADY_PROCESSED', 'Uma transação representa uma única tentativa. Crie uma nova transação.');
     this.#state = 'running';
     this.#controller = new AbortController();
     const signal = this.#options!.signal
@@ -256,13 +256,13 @@ export class Transaction {
       this.#callbacks = undefined;
     }
   }
-  /** Cooperative cancellation of this object's active cycle, never an undo or another transaction's cancel. */
+  /** Cancelamento cooperativo do ciclo ativo deste objeto, nunca um desfazimento nem cancelamento de outra transação. */
   cancel(): void { this.#controller?.abort(); }
   confirm(additionalParameters?: string): Promise<FinalizationResult> { return this.#finalize(true, additionalParameters); }
   undo(additionalParameters?: string): Promise<FinalizationResult> { return this.#finalize(false, additionalParameters); }
   async #finalize(confirm: boolean, additionalParameters?: string): Promise<FinalizationResult> {
     if (!this.#client || !this.#id || ['running', 'finalizing', 'disposed'].includes(this.#state))
-      throw new SitefError('INVALID_STATE', 'Transaction is not available for finalization.');
+      throw new SitefError('INVALID_STATE', 'A transação não está disponível para finalização.');
     const previous = this.#state;
     this.#state = 'finalizing';
     try {
@@ -274,10 +274,10 @@ export class Transaction {
       throw error;
     }
   }
-  /** Release this object's references only. Pending decisions and journal records remain intact. */
+  /** Libera apenas as referências deste objeto. Decisões pendentes e registros persistentes permanecem intactos. */
   dispose(): void {
     if (['running', 'finalizing'].includes(this.#state))
-      throw new SitefError('TRANSACTION_ACTIVE', 'Cancel and await the active cycle before disposing.');
+      throw new SitefError('TRANSACTION_ACTIVE', 'Cancele e aguarde o ciclo ativo antes de liberar a transação.');
     if (this.#state === 'disposed') return;
     this.#client = undefined;
     this.#input = undefined;

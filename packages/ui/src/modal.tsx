@@ -22,7 +22,7 @@ export interface SitefModalProps {
   title?: string;
 }
 
-/** Mount inside CmThemeProvider + CmToastProvider; import cosmemilton-ui/styles.css once. */
+/** Monte dentro de CmThemeProvider + CmToastProvider; importe cosmemilton-ui/styles.css uma vez. */
 export function SitefModal({
   controller,
   title = 'Pagamento SiTef'

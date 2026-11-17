@@ -29,7 +29,7 @@ export interface ModalSnapshot {
   qrCode: string;
   qrFooter: string;
   cancelling: boolean;
-  /** Precision announced by command 0 / field 2470; two until configured. */
+  /** Precisão informada pelo comando 0 / campo 2470; duas casas até ser configurada. */
   decimalPlaces: number;
   unitPriceDecimalPlaces?: number;
   quantityDecimalPlaces?: number;
@@ -41,31 +41,31 @@ export interface ModalSnapshot {
   };
 }
 export interface ModalOptions {
-  /** Abort the SDK transaction signal. Must not close the modal or kill the native process. */
+  /** Interrompa o sinal da transação no SDK. Não deve fechar o modal nem encerrar à força o processo nativo. */
   onCancel: () => void;
-  /** Command 29 must be supplied by application data, never by an operator form. */
+  /** O comando 29 deve ser atendido com dados da aplicação, nunca por um formulário do operador. */
   systemData?: InteractionHandler;
-  /** Future commands may be handled explicitly by the integrator. */
+  /** Comandos futuros podem ser tratados explicitamente pelo integrador. */
   onUnsupported?: InteractionHandler;
-  /** Call client.validateBarcode(data) in Node, or an allowlisted session-bound IPC method. */
+  /** Chame client.validateBarcode(data) no Node ou um método IPC autorizado e vinculado à sessão. */
   validateBarcode?: (
     data: string
   ) => Promise<{ status: number; documentType?: number }>;
-  /** Match the native bridge encoding. Defaults to strict Windows-1252. */
+  /** Use a mesma codificação da ponte nativa. O padrão é Windows-1252 estrito. */
   byteLength?: (value: string) => number;
   nativeEncoding?: 'windows-1252' | 'utf-8' | 'ascii';
 }
 export interface SitefModalController {
   handler: InteractionHandler;
-  /** Pass to core onExchange: command 0 is not forwarded to interaction handlers. */
+  /** Passe para onExchange do núcleo: o comando 0 não é encaminhado aos tratadores de interação. */
   onExchange: (request: Readonly<UiRequest>) => void;
   subscribe: (listener: () => void) => () => void;
   getSnapshot: () => ModalSnapshot;
   respond: (response: UiResponse, requestId: number) => void | Promise<void>;
-  /** Return from the second menu confirmation to its option list, without native navigation. */
+  /** Retorna da segunda confirmação do menu à lista de opções, sem navegação nativa. */
   reviseSelection: (requestId: number) => void;
   cancel: () => void;
-  /** Call only after SDK run settles; this does not finalize a financial transaction. */
+  /** Chame somente após a execução do SDK terminar; isso não finaliza uma transação financeira. */
   complete: () => void;
   reportError: (message: string) => void;
   notify: (

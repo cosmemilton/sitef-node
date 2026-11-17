@@ -154,3 +154,20 @@ não valida esta nova escrita física no equipamento.
   Consumidor isolado offline aprovou seleção automática e fallback.
 - Nenhuma escrita real no pinpad, transação financeira, alteração USB ou
   publicação foi realizada nesta rodada. Build-debug foi restaurado ao final.
+
+
+## Revisão de documentação e localização em 2026-11-17
+
+- Os quatro pacotes npm constavam públicos em 0.4.0. As duas pontes tinham seus executáveis próprios nos pacotes publicados; a documentação foi corrigida para não sugerir que a ponte é privada ou indisponível.
+- Uma árvore local separada já continha uma migração para `@cosmemilton/ui`; essa preparação não foi confundida com a UI publicada 0.4.0, que usa `cosmemilton-ui`.
+- Foram traduzidos os READMEs das pontes, suas descrições e a documentação técnica em inglês. Mensagens próprias do SDK, de exemplos e da ponte Rust foram localizadas, mantendo códigos de erro, protocolo, identificadores e retornos originais do fornecedor.
+- Na árvore de desenvolvimento separada, `npm run check` passou na WSL: core com 413 testes aprovados, 34 condicionados a Windows ignorados e zero falhas; UI com 29 aprovados; empacotamento com 26 aprovados. Esses 29 testes incluem a migração não publicada e não representam a suíte da release isolada, que tem 20 testes de UI. Os testes DOM não substituem validação visual no aplicativo final.
+- `cargo test --offline --manifest-path native/Cargo.toml` passou com 13 testes; os testes sintéticos `smoke.py` e `smoke_tcp.py` também passaram. O executável de depuração Linux x64 desses testes não é artefato de produção.
+- As pontes de distribuição Windows x64 e Linux i686 não foram reconstruídas. Para distribuir os novos diagnósticos Rust, será necessário reconstruir, inspecionar e validar cada alvo e preparar versões compatíveis antes de publicar.
+- Nenhuma versão foi publicada nesta revisão. A verificação `npm whoami` retornou E401 no Windows e na WSL. Nenhuma operação financeira, acesso a kit proprietário ou homologação foi realizada.
+
+## Publicação 0.4.1: verificação pública final em 2026-11-17
+
+Os quatro pacotes ficaram públicos com `latest=0.4.1`, e seus downloads foram comparados byte a byte aos tarballs aprovados, com SHA-512 confirmado. Instalações anônimas de core/UI por nome e versão, com cache novo e configurações vazias, passaram em Windows x64 e Linux x64. A ponte correspondente foi instalada automaticamente; imports, CSS, versões, URLs públicas e hashes dos executáveis foram verificados. Nenhuma biblioteca CliSiTef foi carregada nessas instalações.
+
+A release saiu de uma preparação isolada. O código da UI publicada permanece equivalente ao 0.4.0, exceto comentário traduzido; mantém `cosmemilton-ui`. A migração local para `@cosmemilton/ui` foi preservada, não publicada, e precisa de versão posterior. Os manifests da árvore de desenvolvimento separada foram preservados; esta branch de release registra as versões efetivamente publicadas. Veja o registro de integridades em `docs/releasing.md`. Nenhum commit ou push Git foi executado nesta publicação.

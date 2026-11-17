@@ -1,7 +1,7 @@
 //! Native ABI boundary, implemented from manufacturer documentation, not from
 //! another integration project. No CliSiTef binary is linked or distributed.
 #[cfg(all(windows, not(target_arch = "x86_64")))]
-compile_error!("The production CliSiTef runtime supports Windows x64 only");
+compile_error!("No Windows, o runtime CliSiTef de produção suporta somente x64");
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use encoding_rs::WINDOWS_1252;
@@ -60,28 +60,28 @@ impl NativeEncoding {
         match self { Self::Windows1252 => "windows-1252", Self::Utf8 => "utf-8", Self::Ascii => "ascii" }
     }
     fn encode(self, text: &str) -> Result<Vec<u8>> {
-        if text.contains('\0') { return fail("INVALID_PARAMETER", "Native strings cannot contain NUL bytes"); }
+        if text.contains('\0') { return fail("INVALID_PARAMETER", "Textos nativos não podem conter bytes NUL"); }
         let bytes = match self {
             Self::Utf8 => text.as_bytes().to_vec(),
             Self::Ascii if text.is_ascii() => text.as_bytes().to_vec(),
-            Self::Ascii => return fail("ENCODING_ERROR", "Input cannot be represented as ASCII"),
+            Self::Ascii => return fail("ENCODING_ERROR", "A entrada não pode ser representada em ASCII"),
             Self::Windows1252 => {
                 let (bytes, _, errors) = WINDOWS_1252.encode(text);
-                if errors { return fail("ENCODING_ERROR", "Input cannot be represented as Windows-1252"); }
+                if errors { return fail("ENCODING_ERROR", "A entrada não pode ser representada em Windows-1252"); }
                 bytes.into_owned()
             }
         };
         Ok(bytes)
     }
     fn string(self, text: &str) -> Result<CString> {
-        CString::new(self.encode(text)?).map_err(|_| BridgeError { code: "INVALID_PARAMETER", message: "Invalid native string" })
+        CString::new(self.encode(text)?).map_err(|_| BridgeError { code: "INVALID_PARAMETER", message: "Texto nativo inválido" })
     }
     fn max_bytes(self,text:&str,max:usize)->Result<()> {
-        if self.encode(text)?.len()>max {return fail("INVALID_PARAMETER","Encoded native input exceeds its documented byte limit");}
+        if self.encode(text)?.len()>max {return fail("INVALID_PARAMETER","A entrada nativa codificada excede o limite documentado em bytes");}
         Ok(())
     }
     fn exact_bytes(self,text:&str,expected:usize)->Result<()> {
-        if self.encode(text)?.len()!=expected {return fail("INVALID_PARAMETER","Encoded native input does not match its documented fixed byte length");}
+        if self.encode(text)?.len()!=expected {return fail("INVALID_PARAMETER","A entrada nativa codificada não tem o tamanho fixo documentado em bytes");}
         Ok(())
     }
     fn decode(self, bytes: &[u8]) -> (String, bool) {
@@ -114,13 +114,13 @@ unsafe fn symbol<T: Copy>(library: &Library, name: &str, _stack_bytes: u32) -> O
 
 impl Host {
     unsafe fn get<T: Copy>(&self, name: &str, stack_bytes: u32) -> Result<T> {
-        symbol(&self.library, name, stack_bytes).ok_or(BridgeError { code: "MISSING_SYMBOL", message: "Requested function is not exported by this library version" })
+        symbol(&self.library, name, stack_bytes).ok_or(BridgeError { code: "MISSING_SYMBOL", message: "A função solicitada não é exportada por esta versão da biblioteca" })
     }
     fn idle(&self) -> Result<()> {
-        if self.active { fail("TRANSACTION_ACTIVE", "A native transaction is still active") } else { Ok(()) }
+        if self.active { fail("TRANSACTION_ACTIVE", "Uma transação nativa ainda está ativa") } else { Ok(()) }
     }
     fn ready(&self) -> Result<()> {
-        if self.configured { Ok(()) } else { fail("NOT_CONFIGURED", "Configure the native library first") }
+        if self.configured { Ok(()) } else { fail("NOT_CONFIGURED", "Configure primeiro a biblioteca nativa") }
     }
     fn finish_start(&mut self, status: i32) -> Value {
         self.state = LoopState::default();
@@ -148,7 +148,7 @@ impl Host {
             "configure" => {
                 self.idle()?;
                 let p: ConfigureParams = parse(params)?;
-                if p.reserved != 0 { return fail("INVALID_PARAMETER", "reserved must be zero"); }
+                if p.reserved != 0 { return fail("INVALID_PARAMETER", "reserved deve ser zero"); }
                 self.encoding.exact_bytes(&p.store_id,8)?;
                 self.encoding.exact_bytes(&p.terminal_id,8)?;
                 let server = self.encoding.string(&p.server)?;
@@ -159,7 +159,7 @@ impl Host {
                     if let Some(f) = symbol::<ConfigureEx>(&self.library, "ConfiguraIntSiTefInterativoEx", 20) {
                         f(server.as_ptr(), store.as_ptr(), terminal.as_ptr(), 0, additional.as_ptr())
                     } else {
-                        if !p.additional_parameters.is_empty() { return fail("MISSING_SYMBOL", "Extended configuration is unavailable and additional parameters cannot be discarded"); }
+                        if !p.additional_parameters.is_empty() { return fail("MISSING_SYMBOL", "A configuração estendida está indisponível e os parâmetros adicionais não podem ser descartados"); }
                         let f: Configure = self.get("ConfiguraIntSiTefInterativo", 16)?;
                         f(server.as_ptr(), store.as_ptr(), terminal.as_ptr(), 0)
                     }
@@ -181,7 +181,7 @@ impl Host {
             "finish" => {
                 self.ready()?; self.idle()?;
                 let p: FinishParams = parse(params)?;
-                if p.confirm != 0 && p.confirm != 1 { return fail("INVALID_PARAMETER", "confirm must be zero or one"); }
+                if p.confirm != 0 && p.confirm != 1 { return fail("INVALID_PARAMETER", "confirm deve ser zero ou um"); }
                 self.encoding.max_bytes(&p.fiscal_document,20)?;
                 let strings = [&p.fiscal_document, &p.fiscal_date, &p.fiscal_time, &p.additional_parameters].iter().map(|s| self.encoding.string(s)).collect::<Result<Vec<_>>>()?;
                 let f: Finish = unsafe { self.get("FinalizaFuncaoSiTefInterativo", 20)? };
@@ -223,7 +223,7 @@ impl Host {
             "pinpadInfo" => {
                 // VRS-258 gives a minimum allocation, not a proven maximum; the
                 // ABI supplies no output capacity. Do not guess a safe bound.
-                fail("UNVERIFIED_OUTPUT_BOUND","Direct pinpad information has no verified output bound; use start functionId 775 and the bounded continuation loop")
+                fail("UNVERIFIED_OUTPUT_BOUND","A consulta direta de informações do pinpad não tem limite de saída verificado; use start com functionId 775 e o ciclo de continuação com limites de buffer")
             }
             "validateBarcode" => {
                 // May be called during command 31/35 collection; no transaction is started.
@@ -263,8 +263,8 @@ impl Host {
                 self.ready()?;
                 let p: SecurityKeyParams = parse(params)?;
                 let key_bytes = self.encoding.encode(&p.security_key)?;
-                if key_bytes.len()!=64 {return fail("INVALID_PARAMETER","securityKey must contain exactly 64 encoded bytes");}
-                let key = CString::new(key_bytes).map_err(|_|BridgeError {code:"INVALID_PARAMETER",message:"Invalid securityKey"})?;
+                if key_bytes.len()!=64 {return fail("INVALID_PARAMETER","securityKey deve conter exatamente 64 bytes codificados");}
+                let key = CString::new(key_bytes).map_err(|_|BridgeError {code:"INVALID_PARAMETER",message:"securityKey inválida"})?;
                 if method=="readPasswordDirect" {
                     // Direct reader is documented for use inside an interactive
                     // collection. It does not initiate a second native loop.
@@ -287,42 +287,42 @@ impl Host {
                         let additional = self.encoding.string(&p.additional_parameters)?;
                         f(p.modality, additional.as_ptr())
                     } else {
-                        if !p.additional_parameters.is_empty() {return fail("MISSING_SYMBOL","Extended chip reading is unavailable; additional parameters cannot be discarded");}
+                        if !p.additional_parameters.is_empty() {return fail("MISSING_SYMBOL","A leitura estendida de chip está indisponível; os parâmetros adicionais não podem ser descartados");}
                         let f: IntArg = self.get("LeTrilhaChipInterativo",4)?;
                         f(p.modality)
                     }
                 };
                 Ok(self.finish_start(status))
             }
-            _ => fail("UNSUPPORTED_METHOD", "Unknown bridge method"),
+            _ => fail("UNSUPPORTED_METHOD", "Método da ponte desconhecido"),
         }
     }
     fn output(&self, bytes: &[u8]) -> Result<Value> {
-        let end = bytes.iter().position(|&b| b == 0).ok_or(BridgeError {code:"UNTERMINATED_BUFFER",message:"Native function did not NUL-terminate its output"})?;
+        let end = bytes.iter().position(|&b| b == 0).ok_or(BridgeError {code:"UNTERMINATED_BUFFER",message:"A função nativa não terminou a saída com NUL"})?;
         let raw = &bytes[..end];
         let (text, decoding_error) = self.encoding.decode(raw);
         Ok(json!({"text":text,"rawBase64":BASE64.encode(raw),"decodingError":decoding_error}))
     }
     fn continue_call(&mut self, p: ContinueParams) -> Result<Value> {
         self.ready()?;
-        if !self.active { return fail("NO_ACTIVE_TRANSACTION", "No iterative transaction is active"); }
-        if !(MIN_BUFFER..=MAX_BUFFER).contains(&p.buffer_size) { return fail("INVALID_BUFFER_SIZE", "bufferSize must be between 20000 and 1048576 bytes"); }
+        if !self.active { return fail("NO_ACTIVE_TRANSACTION", "Nenhuma transação iterativa está ativa"); }
+        if !(MIN_BUFFER..=MAX_BUFFER).contains(&p.buffer_size) { return fail("INVALID_BUFFER_SIZE", "bufferSize deve estar entre 20000 e 1048576 bytes"); }
         let raw = match p.buffer_base64 {
-            Some(s) => BASE64.decode(s).map_err(|_|BridgeError {code:"INVALID_PARAMETER",message:"Invalid base64 native buffer"})?,
+            Some(s) => BASE64.decode(s).map_err(|_|BridgeError {code:"INVALID_PARAMETER",message:"Buffer nativo em base64 inválido"})?,
             None => self.encoding.encode(&p.buffer)?,
         };
-        if raw.contains(&0) {return fail("INVALID_PARAMETER","Native buffer cannot contain NUL bytes");}
-        if raw.len() >= p.buffer_size {return fail("BUFFER_TOO_SMALL","Input and terminating NUL must fit in bufferSize");}
+        if raw.contains(&0) {return fail("INVALID_PARAMETER","O buffer nativo não pode conter bytes NUL");}
+        if raw.len() >= p.buffer_size {return fail("BUFFER_TOO_SMALL","A entrada e o NUL de terminação devem caber em bufferSize");}
         validate_collection(self.state.command,self.state.min,self.state.max,&raw,p.continue_flag)?;
         if self.state.command == 0 && matches!(p.continue_flag,0|10000) && raw != self.state.buffer {
-            return fail("DATA_ECHO_REQUIRED","Command zero must echo the exact original native buffer bytes");
+            return fail("DATA_ECHO_REQUIRED","O comando zero deve devolver exatamente os bytes originais do buffer nativo");
         }
         let f: ContinueFn = unsafe {self.get("ContinuaFuncaoSiTefInterativo",28)?};
         let mut buffer = vec![0u8;p.buffer_size];
         buffer[..raw.len()].copy_from_slice(&raw);
         let status = unsafe {f(&mut self.state.command,&mut self.state.field_type,&mut self.state.min,&mut self.state.max,buffer.as_mut_ptr().cast(),p.buffer_size as i32,p.continue_flag)};
         self.active = status == CONTINUE;
-        let end = buffer.iter().position(|&b|b == 0).ok_or(BridgeError {code:"UNTERMINATED_BUFFER",message:"Native continuation did not NUL-terminate its output; transaction outcome is uncertain"})?;
+        let end = buffer.iter().position(|&b|b == 0).ok_or(BridgeError {code:"UNTERMINATED_BUFFER",message:"A continuação nativa não terminou a saída com NUL; o resultado da transação é incerto"})?;
         self.state.buffer = buffer[..end].to_vec();
         let (text, decoding_error) = self.encoding.decode(&self.state.buffer);
         Ok(json!({"status":status,"command":self.state.command,"fieldType":self.state.field_type,"minLength":self.state.min,"maxLength":self.state.max,"buffer":text,"bufferBase64":BASE64.encode(&self.state.buffer),"decodingError":decoding_error}))
@@ -330,13 +330,13 @@ impl Host {
 }
 
 fn validate_collection(command:i32,min:i16,max:i16,raw:&[u8],flag:i32)->Result<()> {
-    if !matches!(flag,-1|0|1|2|10000) {return fail("INVALID_CONTINUE_FLAG","continueFlag is not a documented navigation value");}
+    if !matches!(flag,-1|0|1|2|10000) {return fail("INVALID_CONTINUE_FLAG","continueFlag não é um valor de navegação documentado");}
     // Navigation and cancellation do not submit a collected value. Cheque and
     // barcode commands have prefixes/cancellation payloads and require their
     // own validation, so do not apply plain-field byte limits to them.
     if matches!(flag,0|10000) && matches!(command,29|30|34|41) {
-        if min<0 || max<min {return fail("INVALID_NATIVE_LIMITS","Native collection length limits are invalid");}
-        if raw.len()<min as usize || raw.len()>max as usize {return fail("INVALID_INPUT_LENGTH","Encoded field length is outside the native byte limits");}
+        if min<0 || max<min {return fail("INVALID_NATIVE_LIMITS","Os limites de tamanho da coleta nativa são inválidos");}
+        if raw.len()<min as usize || raw.len()>max as usize {return fail("INVALID_INPUT_LENGTH","O tamanho do campo codificado está fora dos limites nativos em bytes");}
     }
     Ok(())
 }
@@ -389,40 +389,40 @@ struct SecurityKeyParams { security_key:String }
 #[serde(deny_unknown_fields)]
 struct Request { id:u64, method:String, #[serde(default="empty_params")] params:Value }
 fn empty_params()->Value {json!({})}
-fn parse<T:serde::de::DeserializeOwned>(v:Value)->Result<T> {serde_json::from_value(v).map_err(|_|BridgeError {code:"INVALID_PARAMETER",message:"Request parameters do not match the method schema"})}
+fn parse<T:serde::de::DeserializeOwned>(v:Value)->Result<T> {serde_json::from_value(v).map_err(|_|BridgeError {code:"INVALID_PARAMETER",message:"Os parâmetros da requisição não correspondem ao esquema do método"})}
 
 fn load(params:Value)->Result<Host> {
     let p:LoadParams = parse(params)?;
     #[cfg(not(any(windows, all(target_os="linux", target_arch="x86"))))]
-    if !p.test_mode {return fail("UNSUPPORTED_PLATFORM","Vendor runtime requires Windows x64 or Linux i686; other hosts permit explicit testMode synthetic fixtures only");}
+    if !p.test_mode {return fail("UNSUPPORTED_PLATFORM","O runtime do fornecedor exige Windows x64 ou Linux i686; outros sistemas permitem apenas testes sintéticos com testMode explícito");}
     let path = Path::new(&p.library_path);
-    if !path.is_absolute() {return fail("INVALID_LIBRARY_PATH","libraryPath must be absolute");}
-    let path = path.canonicalize().map_err(|_|BridgeError {code:"LIBRARY_NOT_FOUND",message:"Native library does not exist or is not accessible"})?;
-    if !path.is_file() {return fail("INVALID_LIBRARY_PATH","libraryPath must point to a file");}
+    if !path.is_absolute() {return fail("INVALID_LIBRARY_PATH","libraryPath deve ser absoluto");}
+    let path = path.canonicalize().map_err(|_|BridgeError {code:"LIBRARY_NOT_FOUND",message:"A biblioteca nativa não existe ou não está acessível"})?;
+    if !path.is_file() {return fail("INVALID_LIBRARY_PATH","libraryPath deve apontar para um arquivo");}
     #[cfg(windows)]
     verify_x64_library(&path)?;
     let filename = path.file_name().and_then(|s|s.to_str()).unwrap_or("").to_ascii_lowercase();
-    if matches!(filename.as_str(),"clisitef.dll"|"clisitef32.dll"|"clisitef64.dll") {return fail("INVALID_LIBRARY_PATH","Load the CliSiTefI interface library, not the internal CliSiTef library");}
+    if matches!(filename.as_str(),"clisitef.dll"|"clisitef32.dll"|"clisitef64.dll") {return fail("INVALID_LIBRARY_PATH","Carregue a biblioteca de interface CliSiTefI, não a biblioteca interna CliSiTef");}
     #[cfg(all(target_os="linux",target_arch="x86"))]
     if !p.test_mode {
         verify_linux_ia32_library(&path)?;
     }
     let directory = match p.working_directory {
-        Some(ref s) => {let d=Path::new(s); if !d.is_absolute() {return fail("INVALID_WORKING_DIRECTORY","workingDirectory must be absolute");} d.canonicalize().map_err(|_|BridgeError {code:"INVALID_WORKING_DIRECTORY",message:"workingDirectory is not accessible"})?},
-        None => path.parent().ok_or(BridgeError {code:"INVALID_LIBRARY_PATH",message:"Native library must have a parent directory"})?.to_path_buf(),
+        Some(ref s) => {let d=Path::new(s); if !d.is_absolute() {return fail("INVALID_WORKING_DIRECTORY","workingDirectory deve ser absoluto");} d.canonicalize().map_err(|_|BridgeError {code:"INVALID_WORKING_DIRECTORY",message:"workingDirectory não está acessível"})?},
+        None => path.parent().ok_or(BridgeError {code:"INVALID_LIBRARY_PATH",message:"A biblioteca nativa deve ter um diretório pai"})?.to_path_buf(),
     };
-    if !directory.is_dir() {return fail("INVALID_WORKING_DIRECTORY","workingDirectory must be a directory");}
+    if !directory.is_dir() {return fail("INVALID_WORKING_DIRECTORY","workingDirectory deve ser um diretório");}
     let library = unsafe {
         #[cfg(windows)]
-        { Library::from(libloading::os::windows::Library::load_with_flags(&path,0x00000100|0x00001000).map_err(|_|BridgeError {code:"LIBRARY_LOAD_FAILED",message:"Cannot load interface library; verify architecture and companion dependencies"})?) }
+        { Library::from(libloading::os::windows::Library::load_with_flags(&path,0x00000100|0x00001000).map_err(|_|BridgeError {code:"LIBRARY_LOAD_FAILED",message:"Não foi possível carregar a biblioteca de interface; verifique a arquitetura e as dependências auxiliares"})?) }
         #[cfg(not(windows))]
-        { Library::new(&path).map_err(|_|BridgeError {code:"LIBRARY_LOAD_FAILED",message:"Cannot load interface library; verify architecture and companion dependencies"})? }
+        { Library::new(&path).map_err(|_|BridgeError {code:"LIBRARY_LOAD_FAILED",message:"Não foi possível carregar a biblioteca de interface; verifique a arquitetura e as dependências auxiliares"})? }
     };
     for (name,stack) in [("IniciaFuncaoSiTefInterativo",28),("ContinuaFuncaoSiTefInterativo",28),("FinalizaFuncaoSiTefInterativo",20)] {
-        if unsafe {symbol::<unsafe extern "system" fn()>(&library,name,stack)}.is_none() {return fail("MISSING_SYMBOL","Interface library does not export all required transaction functions");}
+        if unsafe {symbol::<unsafe extern "system" fn()>(&library,name,stack)}.is_none() {return fail("MISSING_SYMBOL","A biblioteca de interface não exporta todas as funções de transação necessárias");}
     }
-    if unsafe {symbol::<Configure>(&library,"ConfiguraIntSiTefInterativo",16)}.is_none() && unsafe {symbol::<ConfigureEx>(&library,"ConfiguraIntSiTefInterativoEx",20)}.is_none() {return fail("MISSING_SYMBOL","Interface library does not export a configuration function");}
-    std::env::set_current_dir(&directory).map_err(|_|BridgeError {code:"INVALID_WORKING_DIRECTORY",message:"Cannot enter workingDirectory"})?;
+    if unsafe {symbol::<Configure>(&library,"ConfiguraIntSiTefInterativo",16)}.is_none() && unsafe {symbol::<ConfigureEx>(&library,"ConfiguraIntSiTefInterativoEx",20)}.is_none() {return fail("MISSING_SYMBOL","A biblioteca de interface não exporta uma função de configuração");}
+    std::env::set_current_dir(&directory).map_err(|_|BridgeError {code:"INVALID_WORKING_DIRECTORY",message:"Não foi possível acessar workingDirectory"})?;
     Ok(Host {library,encoding:p.native_encoding,configured:false,active:false,state:LoopState::default(),test_mode:p.test_mode})
 }
 
@@ -435,13 +435,13 @@ fn runtime_target()->&'static str {
 #[cfg(any(all(target_os="linux",target_arch="x86"),test))]
 fn validate_linux_ia32_header(header:&[u8])->Result<()> {
     if header.len()<52 || &header[..4]!=b"\x7fELF" || header[6]!=1 {
-        return fail("INVALID_LIBRARY_FORMAT","Native library must have a complete ELF header");
+        return fail("INVALID_LIBRARY_FORMAT","A biblioteca nativa deve ter um cabeçalho ELF completo");
     }
     if header[4]!=1 || header[5]!=1 || u16::from_le_bytes([header[18],header[19]])!=3 {
-        return fail("WRONG_LIBRARY_ARCHITECTURE","Linux native library must target ELF32 little-endian Intel 386");
+        return fail("WRONG_LIBRARY_ARCHITECTURE","A biblioteca nativa Linux deve ser ELF32 little-endian para Intel 386");
     }
     if u16::from_le_bytes([header[16],header[17]])!=3 || u32::from_le_bytes(header[20..24].try_into().unwrap())!=1 || u16::from_le_bytes([header[40],header[41]])!=52 {
-        return fail("INVALID_LIBRARY_FORMAT","Native library must be an ELF32 shared object");
+        return fail("INVALID_LIBRARY_FORMAT","A biblioteca nativa deve ser um objeto compartilhado ELF32");
     }
     Ok(())
 }
@@ -450,30 +450,30 @@ fn validate_linux_ia32_header(header:&[u8])->Result<()> {
 fn verify_linux_ia32_library(path:&Path)->Result<()> {
     let mut header=[0u8;52];
     std::fs::File::open(path).and_then(|mut file|file.read_exact(&mut header))
-        .map_err(|_|BridgeError{code:"INVALID_LIBRARY_FORMAT",message:"Cannot read complete native ELF header"})?;
+        .map_err(|_|BridgeError{code:"INVALID_LIBRARY_FORMAT",message:"Não foi possível ler o cabeçalho ELF nativo completo"})?;
     validate_linux_ia32_header(&header)
 }
 
 #[cfg(any(windows,test))]
 fn validate_pe_headers(dos:&[u8],pe:&[u8])->Result<()> {
-    if dos.len()<64 || &dos[..2]!=b"MZ" || pe.len()<26 || &pe[..4]!=b"PE\0\0" {return fail("INVALID_LIBRARY_FORMAT","Interface library must be a valid PE dynamic library");}
+    if dos.len()<64 || &dos[..2]!=b"MZ" || pe.len()<26 || &pe[..4]!=b"PE\0\0" {return fail("INVALID_LIBRARY_FORMAT","A biblioteca de interface deve ser uma biblioteca dinâmica PE válida");}
     let machine=u16::from_le_bytes([pe[4],pe[5]]);
     let magic=u16::from_le_bytes([pe[24],pe[25]]);
-    if machine!=0x8664 || magic!=0x20b {return fail("WRONG_LIBRARY_ARCHITECTURE","Interface library must target Windows x64 (AMD64 PE32+)");}
+    if machine!=0x8664 || magic!=0x20b {return fail("WRONG_LIBRARY_ARCHITECTURE","A biblioteca de interface deve ser para Windows x64 (AMD64 PE32+)");}
     Ok(())
 }
 
 #[cfg(windows)]
 fn verify_x64_library(path:&Path)->Result<()> {
-    let mut file=std::fs::File::open(path).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"Cannot read native PE header"})?;
+    let mut file=std::fs::File::open(path).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"Não foi possível ler o cabeçalho PE nativo"})?;
     let mut dos=[0u8;64];
-    file.read_exact(&mut dos).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"Native library has an incomplete DOS header"})?;
-    if &dos[..2]!=b"MZ" {return fail("INVALID_LIBRARY_FORMAT","Interface library must be a Windows PE file");}
+    file.read_exact(&mut dos).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"A biblioteca nativa tem um cabeçalho DOS incompleto"})?;
+    if &dos[..2]!=b"MZ" {return fail("INVALID_LIBRARY_FORMAT","A biblioteca de interface deve ser um arquivo PE do Windows");}
     let offset=u32::from_le_bytes([dos[60],dos[61],dos[62],dos[63]]) as u64;
-    if offset<64 {return fail("INVALID_LIBRARY_FORMAT","Native library has an invalid PE header offset");}
-    file.seek(SeekFrom::Start(offset)).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"Cannot locate native PE header"})?;
+    if offset<64 {return fail("INVALID_LIBRARY_FORMAT","A biblioteca nativa tem um deslocamento de cabeçalho PE inválido");}
+    file.seek(SeekFrom::Start(offset)).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"Não foi possível localizar o cabeçalho PE nativo"})?;
     let mut pe=[0u8;26];
-    file.read_exact(&mut pe).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"Native library has an incomplete PE header"})?;
+    file.read_exact(&mut pe).map_err(|_|BridgeError {code:"INVALID_LIBRARY_FORMAT",message:"A biblioteca nativa tem um cabeçalho PE incompleto"})?;
     validate_pe_headers(&dos,&pe)
 }
 
@@ -491,13 +491,13 @@ fn serve<R:BufRead,W:Write>(mut input:R,mut output:W)->io::Result<()> {
         let mut frame=Vec::new();
         let read=(&mut input).take((MAX_FRAME+1) as u64).read_until(b'\n',&mut frame)?;
         if read==0 {break;}
-        if frame.len()>MAX_FRAME {respond(&mut output,Value::Null,fail("FRAME_TOO_LARGE","IPC frame exceeds size limit"))?;break;}
-        let request:Request=match serde_json::from_slice(&frame) {Ok(r)=>r,Err(_)=>{respond(&mut output,Value::Null,fail("INVALID_REQUEST","Malformed IPC request"))?;continue;}};
+        if frame.len()>MAX_FRAME {respond(&mut output,Value::Null,fail("FRAME_TOO_LARGE","O quadro IPC excede o limite de tamanho"))?;break;}
+        let request:Request=match serde_json::from_slice(&frame) {Ok(r)=>r,Err(_)=>{respond(&mut output,Value::Null,fail("INVALID_REQUEST","Requisição IPC malformada"))?;continue;}};
         let result = if request.method=="load" {
-            if host.is_some() {fail("ALREADY_LOADED","A bridge process loads only one library for its lifetime")} else {
+            if host.is_some() {fail("ALREADY_LOADED","Um processo da ponte carrega somente uma biblioteca durante sua execução")} else {
                 match load(request.params) {Ok(h)=>{let cap=h.capabilities();host=Some(h);Ok(cap)},Err(e)=>Err(e)}
             }
-        } else if let Some(ref mut h)=host {h.call(&request.method,request.params)} else {fail("NOT_LOADED","Load an interface library first")};
+        } else if let Some(ref mut h)=host {h.call(&request.method,request.params)} else {fail("NOT_LOADED","Carregue primeiro uma biblioteca de interface")};
         respond(&mut output,json!(request.id),result)?;
     }
     Ok(())
@@ -508,31 +508,31 @@ enum TransportMode { Stdio, Tcp {address:SocketAddrV4,token_env:String} }
 
 fn transport_mode(args:&[String])->Result<TransportMode> {
     if args.is_empty() {return Ok(TransportMode::Stdio);}
-    if args.len()!=4 {return fail("INVALID_ARGUMENTS","TCP transport requires --connect and --token-env");}
+    if args.len()!=4 {return fail("INVALID_ARGUMENTS","O transporte TCP exige --connect e --token-env");}
     let mut address=None;
     let mut token_env=None;
     for pair in args.chunks_exact(2) {
         match pair[0].as_str() {
             "--connect" if address.is_none()=>{
-                let port=pair[1].strip_prefix("127.0.0.1:").ok_or(BridgeError {code:"INVALID_ARGUMENTS",message:"TCP transport permits only the exact IPv4 loopback address"})?;
-                if port.is_empty() || !port.bytes().all(|b|b.is_ascii_digit()) {return fail("INVALID_ARGUMENTS","TCP transport requires a numeric loopback port");}
-                let port:u16=port.parse().map_err(|_|BridgeError {code:"INVALID_ARGUMENTS",message:"TCP port is out of range"})?;
-                if port==0 {return fail("INVALID_ARGUMENTS","TCP port must be greater than zero");}
+                let port=pair[1].strip_prefix("127.0.0.1:").ok_or(BridgeError {code:"INVALID_ARGUMENTS",message:"O transporte TCP permite somente o endereço IPv4 de loopback exato"})?;
+                if port.is_empty() || !port.bytes().all(|b|b.is_ascii_digit()) {return fail("INVALID_ARGUMENTS","O transporte TCP exige uma porta de loopback numérica");}
+                let port:u16=port.parse().map_err(|_|BridgeError {code:"INVALID_ARGUMENTS",message:"A porta TCP está fora do intervalo permitido"})?;
+                if port==0 {return fail("INVALID_ARGUMENTS","A porta TCP deve ser maior que zero");}
                 address=Some(SocketAddrV4::new(Ipv4Addr::LOCALHOST,port));
             }
             "--token-env" if token_env.is_none()=>{
                 let key=&pair[1];
                 let mut bytes=key.bytes();
                 let first=bytes.next();
-                if !first.is_some_and(|b|b.is_ascii_alphabetic()||b==b'_') || !bytes.all(|b|b.is_ascii_alphanumeric()||b==b'_') {return fail("INVALID_ARGUMENTS","Token environment name is invalid");}
+                if !first.is_some_and(|b|b.is_ascii_alphabetic()||b==b'_') || !bytes.all(|b|b.is_ascii_alphanumeric()||b==b'_') {return fail("INVALID_ARGUMENTS","O nome da variável de ambiente do token é inválido");}
                 token_env=Some(key.clone());
             }
-            _=>return fail("INVALID_ARGUMENTS","Unknown or duplicate transport argument"),
+            _=>return fail("INVALID_ARGUMENTS","Argumento de transporte desconhecido ou duplicado"),
         }
     }
     match (address,token_env) {
         (Some(address),Some(token_env))=>Ok(TransportMode::Tcp {address,token_env}),
-        _=>fail("INVALID_ARGUMENTS","TCP transport requires --connect and --token-env"),
+        _=>fail("INVALID_ARGUMENTS","O transporte TCP exige --connect e --token-env"),
     }
 }
 
@@ -547,8 +547,8 @@ fn run_transport(mode:TransportMode)->io::Result<()> {
             // nonce is never included in arguments, errors, stdout or stderr.
             let value=std::env::var(&token_env);
             std::env::remove_var(&token_env);
-            let token=value.map_err(|_|io::Error::new(io::ErrorKind::InvalidInput,"Missing transport credential"))?;
-            if !valid_transport_token(&token) {return Err(io::Error::new(io::ErrorKind::InvalidInput,"Invalid transport credential"));}
+            let token=value.map_err(|_|io::Error::new(io::ErrorKind::InvalidInput,"Credencial de transporte ausente"))?;
+            if !valid_transport_token(&token) {return Err(io::Error::new(io::ErrorKind::InvalidInput,"Credencial de transporte inválida"));}
             let mut stream=TcpStream::connect_timeout(&SocketAddr::V4(address),Duration::from_secs(10))?;
             stream.set_nodelay(true)?;
             serde_json::to_writer(&mut stream,&transport_handshake(&token))?;
@@ -572,6 +572,19 @@ fn main()->std::process::ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn protocol_errors_use_portuguese_without_changing_codes_or_envelope() {
+        let input = b"not-json\n{\"id\":7,\"method\":\"capabilities\"}\n";
+        let mut output = Vec::new();
+        serve(io::Cursor::new(input), &mut output).unwrap();
+        let text = String::from_utf8(output).unwrap();
+        let replies = text.lines().map(|line| serde_json::from_str::<Value>(line).unwrap()).collect::<Vec<_>>();
+        assert_eq!(replies, vec![
+            json!({"id":null,"error":{"code":"INVALID_REQUEST","message":"Requisição IPC malformada"}}),
+            json!({"id":7,"error":{"code":"NOT_LOADED","message":"Carregue primeiro uma biblioteca de interface"}}),
+        ]);
+        assert_eq!(NativeEncoding::Ascii.encode("ação").unwrap_err().code, "ENCODING_ERROR");
+        assert_eq!(NativeEncoding::Ascii.encode("ação").unwrap_err().message, "A entrada não pode ser representada em ASCII");
+    }
     #[test] fn input_rejects_nul_and_unrepresentable_text() {
         assert!(NativeEncoding::Windows1252.encode("x\0y").is_err());
         assert!(NativeEncoding::Windows1252.encode("💳").is_err());
