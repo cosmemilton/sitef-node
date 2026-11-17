@@ -1,9 +1,9 @@
-# Bridges Windows e Linux: instalação e operação
+# Pontes Windows e Linux: instalação e operação
 
 Este guia descreve a versão **0.4.0**, com pontes opcionais por plataforma.
-A versão anterior 0.3.0 usa Windows x64 com ponte manual. Quando a 0.4.0
-estiver disponível no registro, instale somente o core com dependências
-opcionais habilitadas: npm install @cosmemilton/sitef@0.4.0.
+A versão anterior 0.3.0 usa Windows x64 com ponte manual. A versão 0.4.0 já está
+publicada no npm; instale o SDK com dependências opcionais habilitadas:
+`npm install @cosmemilton/sitef@0.4.0`.
 O fluxo de tarballs abaixo permite validar o checkout antes da publicação
 ou distribuir artefatos próprios em um ambiente de teste.
 
@@ -140,8 +140,8 @@ Resolver o caminho não carrega a biblioteca e não executa uma operação.
 Não use o diretório do checkout como único teste de instalação: ele pode mascarar
 dependências ausentes. A UI é opcional e não é necessária para resolver a ponte.
 
-Depois de uma publicação autorizada dos quatro pacotes, instalar o core 0.4.0
-com dependências opcionais habilitadas deverá instalar somente a ponte compatível.
+Os quatro pacotes 0.4.0 estão públicos no npm. Instalar o core 0.4.0
+com dependências opcionais habilitadas instala a ponte compatível.
 O core fixa a versão dos bridges; não misture versões ou publique o core antes deles.
 
 ## 4. Inicialize uma vez

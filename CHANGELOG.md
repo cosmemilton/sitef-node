@@ -1,6 +1,14 @@
-# Changelog
+# Histórico de alterações
 
 As alterações abaixo descrevem o código e a documentação. Uma versão do código não comprova publicação no npm, execução em produção ou homologação SiTef.
+
+## 0.4.1 — publicada em 2026-11-17
+
+- Documentação e descrições das pontes em português; esclarecida a distribuição pública dos executáveis Rust.
+- Diagnósticos próprios do SDK e das pontes localizados, sem alterar códigos de erro, protocolo ou retornos do fornecedor.
+- Pontes Windows x64 e Linux i686 reconstruídas, com verificações sintéticas e integridade dos pacotes publicados.
+- UI mantém `cosmemilton-ui` e o comportamento da 0.4.0. A migração para `@cosmemilton/ui` não faz parte desta release.
+- Instalação pública anônima verificada nas duas plataformas, incluindo a ponte opcional automática.
 
 ## 0.4.0
 

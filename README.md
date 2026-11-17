@@ -2,13 +2,13 @@
 
 SDK TypeScript para integrar uma automação Node.js à interface CliSiTef, com uma ponte Rust em processo separado e decisões financeiras explícitas.
 
-**Versão 0.4.0. Windows x64 e Linux glibc com bridge i686; sem homologação financeira.** A versão anterior 0.3.0 (Windows x64, ponte manual) foi publicada em 2026-11-08: [core](https://www.npmjs.com/package/@cosmemilton/sitef/v/0.3.0) e [UI](https://www.npmjs.com/package/@cosmemilton/sitef-ui/v/0.3.0), ambos públicos. O código próprio é distribuído sob a licença [MIT](LICENSE). Publicação não significa aprovação para uso em produção ou homologação.
+**Versão 0.4.1. Windows x64 e Linux glibc com ponte i686; sem homologação financeira.** A versão anterior 0.3.0 (Windows x64, ponte manual) foi publicada em 2026-11-08: [core](https://www.npmjs.com/package/@cosmemilton/sitef/v/0.3.0) e [UI](https://www.npmjs.com/package/@cosmemilton/sitef-ui/v/0.3.0), ambos públicos. O código próprio é distribuído sob a licença [MIT](LICENSE). Publicação não significa aprovação para uso em produção ou homologação.
 
 ## Componentes e requisitos
 
 - `@cosmemilton/sitef`: cliente, transações, callbacks, campos e snapshots, sem dependência de React.
 - `@cosmemilton/sitef-ui`: modal React opcional, integrado a `cosmemilton-ui`. Veja [a documentação do modal](packages/ui/README.md).
-- `@cosmemilton/sitef-bridge-win32-x64` e `@cosmemilton/sitef-bridge-linux-ia32`: novos pacotes opcionais da 0.4.0, contendo somente a ponte própria da plataforma.
+- `@cosmemilton/sitef-bridge-win32-x64` e `@cosmemilton/sitef-bridge-linux-ia32`: pacotes opcionais por plataforma, disponíveis desde a 0.4.0, contendo somente a ponte própria da plataforma.
 - `native/`: fontes Rust comuns das duas pontes; compilação manual continua disponível.
 
 Use Node.js **>=22.18.0**. No Windows, use Node x64, ponte x64 e a **biblioteca de interface x64** fornecida pelo integrador, como `CliSiTef64I.dll`; a DLL interna `CliSiTef.dll` não substitui essa interface. No Linux glibc, Node x64 ou ia32 usa uma ponte **i686** separada para `libclisitef.so` ELF32. A arquitetura da ponte segue a biblioteca, não necessariamente o processo Node. A 0.4.0 resolve a ponte pelo pacote opcional; caminhos explícitos continuam tendo prioridade.
@@ -22,17 +22,17 @@ Para começar sem depender dos exemplos Windows, veja o **[guia de distribuiçã
 Instale o core com dependências opcionais habilitadas. O npm seleciona a ponte compatível com a plataforma:
 
 ```sh
-npm install @cosmemilton/sitef@0.4.0
+npm install @cosmemilton/sitef@0.4.1
 ```
 
 ```js
 import { ClientSitef } from '@cosmemilton/sitef';
 ```
 
-A ponte própria é uma dependência opcional por plataforma, sem compilação durante a instalação. O kit autorizado do fornecedor continua sendo provisionado separadamente. Para testar antes da disponibilidade no registro, use os tarballs locais descritos no guia de distribuição.
+A ponte própria é uma dependência opcional por plataforma, sem compilação durante a instalação. O kit autorizado do fornecedor continua sendo provisionado separadamente. Os quatro pacotes 0.4.1 estão publicados no npm. Para validar uma compilação local, use os pacotes descritos no guia de distribuição.
 Para a UI React opcional e suas dependências peer, veja o
-[quickstart do modal](packages/ui/README.md#instalação).
-O [registro da release](docs/releasing.md#release-030-publicada-em-2026-11-08) identifica o commit e as verificações dos artefatos publicados.
+[guia inicial do modal](packages/ui/README.md#instalação).
+O [registro da release](docs/releasing.md#publicação-isolada-041-em-2026-11-17) identifica o commit e as verificações dos artefatos publicados.
 
 ## Referência principal: exemplo simples Windows
 

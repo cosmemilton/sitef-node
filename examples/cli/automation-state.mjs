@@ -48,7 +48,7 @@ export async function warnPreviousState(root, configuration, io) {
   let entries = [];
   try {
     const info = await lstat(directory);
-    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Invalid state directory');
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Diretório de estado inválido');
     entries = await readdir(directory);
   } catch (error) {
     if (error.code !== 'ENOENT') warnings.push({ code: 'STATE_DIRECTORY_UNREADABLE', path: directory });

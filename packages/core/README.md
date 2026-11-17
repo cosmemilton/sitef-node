@@ -1,13 +1,13 @@
 # @cosmemilton/sitef
 
-SDK TypeScript/Node.js para a interface CliSiTef, com ponte Rust isolada e finalização explícita. **Versão 0.4.0; Windows x64 e Linux glibc com ponte i686; Node.js >=22.18.0; sem homologação financeira.** A [versão 0.3.0](https://www.npmjs.com/package/@cosmemilton/sitef/v/0.3.0) foi publicada no npm em 2026-11-08, com acesso público. Licença do código próprio: [MIT](LICENSE).
+SDK TypeScript/Node.js para a interface CliSiTef, com ponte Rust isolada e finalização explícita. **Versão 0.4.1; Windows x64 e Linux glibc com ponte i686; Node.js >=22.18.0; sem homologação financeira.** A [versão 0.4.0](https://www.npmjs.com/package/@cosmemilton/sitef/v/0.4.0) está publicada no npm, com acesso público. Licença do código próprio: [MIT](LICENSE).
 
 ## Instalação
 
 Instale com dependências opcionais habilitadas; o npm seleciona a ponte da plataforma:
 
 ```sh
-npm install @cosmemilton/sitef@0.4.0
+npm install @cosmemilton/sitef@0.4.1
 ```
 
 ```js
@@ -16,7 +16,7 @@ import { ClientSitef } from '@cosmemilton/sitef';
 
 Esse import não configura nem carrega a DLL. A chamada a
 `ClientSitef.create(options)` requer os caminhos e a configuração do seu ambiente.
-A versão 0.4.0 inclui dependências opcionais para a ponte própria, sem compilação durante a instalação e sem baixar o SDK proprietário. Antes da disponibilidade no registro, o checkout permite testar os tarballs locais. Veja o [guia de instalação local e configuração](https://github.com/cosmemilton/sitef-node/blob/main/docs/bridge-distribution.md).
+A versão 0.4.0 inclui dependências opcionais para a ponte própria, sem compilação durante a instalação e sem baixar o SDK proprietário. A ponte já está disponível publicamente no npm. O repositório também permite gerar e testar pacotes locais. Veja o [guia de instalação local e configuração](https://github.com/cosmemilton/sitef-node/blob/main/docs/bridge-distribution.md).
 
 ## Começar
 

@@ -1,50 +1,50 @@
-# Native host
+# Processo nativo
 
-Rust executable using JSON lines on stdin/stdout. Supported vendor ABI targets
-are **Windows x64** and **Linux i686 (32-bit, glibc)**, in a process isolated from
-Node/Electron. A Linux x64 Node/Electron process launches the i686 executable;
-the helper architecture must match the vendor library, not the parent process.
+Executável Rust que usa linhas JSON em stdin/stdout. Os alvos de ABI do fornecedor compatíveis
+são **Windows x64** e **Linux i686 (32 bits, glibc)**, em um processo isolado de
+Node/Electron. Um processo Node/Electron Linux x64 inicia o executável i686;
+a arquitetura da ponte deve corresponder à biblioteca do fornecedor, não ao processo pai.
 
-The integrator supplies an absolute path to its own library: on Windows use the
-**interface** DLL (e.g. `CliSiTef64I.dll`), never the internal `CliSiTef.dll`.
-PE headers must identify AMD64 PE32+. On Linux use `libclisitef.so` from the Linux32
-kit. ELF headers must identify a little-endian Intel 386 ELF32 shared object.
-No vendor library, configuration, certificate or manual is included.
+O integrador fornece um caminho absoluto para sua própria biblioteca: no Windows, use a
+DLL de **interface** (por exemplo, `CliSiTef64I.dll`), nunca a interna `CliSiTef.dll`.
+Os cabeçalhos PE devem identificar AMD64 PE32+. No Linux, use `libclisitef.so` do kit Linux32.
+Os cabeçalhos ELF devem identificar um objeto compartilhado Intel 386 ELF32 little-endian.
+Nenhuma biblioteca, configuração, certificado ou manual do fornecedor é incluído.
 
-Stdio remains the default. An optional authenticated loopback transport is
-available for clients such as PHP on Windows:
-`--connect 127.0.0.1:PORT --token-env SITEF_BRIDGE_TOKEN`. The client creates the
-listener first and supplies a fresh 64-hex-character nonce in the child
-environment. The helper removes it, connects within 10 seconds, and sends
-`{protocolVersion:1,transport:"tcp-loopback",token:nonce}` before the same NDJSON
-requests/replies. Only the exact IPv4 loopback address and a nonzero port are
-accepted. TCP mode leaves stdout/stderr empty. See [the shared protocol](../docs/bridge-protocol.md) for
-the full language-neutral contract and error/state semantics.
+Stdio continua sendo o padrão. Um transporte opcional autenticado por loopback está
+disponível para clientes como PHP no Windows:
+`--connect 127.0.0.1:PORT --token-env SITEF_BRIDGE_TOKEN`. O cliente cria primeiro o
+receptor e fornece um novo nonce de 64 caracteres hexadecimais no ambiente do
+processo filho. A ponte o remove, conecta em até 10 segundos e envia
+`{protocolVersion:1,transport:"tcp-loopback",token:nonce}` antes das mesmas
+requisições/respostas NDJSON. Só são aceitos o endereço IPv4 de loopback exato e uma porta
+não zero. O modo TCP deixa stdout/stderr vazios. Consulte [o protocolo compartilhado](../docs/bridge-protocol.md)
+para o contrato completo independente de linguagem e a semântica de erros e estados.
 
-Other host architectures, including Linux x64 bridges, remain synthetic-test only
-with explicit `testMode: true`. Never use testMode to bypass vendor ABI checks.
-Linux i686 has `sizeof(long) == 4`; Linux x64 has `sizeof(long) == 8` and cannot
-safely substitute for the supplied Linux32 library. The C ABI is used on Linux.
+Outras arquiteturas de execução, inclusive pontes Linux x64, continuam restritas a testes sintéticos
+com `testMode: true` explícito. Nunca use testMode para contornar verificações de ABI do fornecedor.
+Linux i686 tem `sizeof(long) == 4`; Linux x64 tem `sizeof(long) == 8` e não pode
+substituir com segurança a biblioteca Linux32 fornecida. No Linux, usa-se a ABI C.
 
-The original semantic baseline is VRS-258 and Wallets 1.43 from the Win32 kit.
-Later checks compared the 444 field IDs in section 5.3.2 with VRS-260; specific guides cite additional targeted consultations. This is not a
-complete semantic audit of VRS-260. PDFs in the x64 kit were not read or used.
-The supplied x64 binary is older than those documents. Capabilities therefore
-report the symbols actually present, and optional wrappers fail explicitly when
-an entrypoint is missing; newer documented features still require vendor tests.
+A base semântica original é VRS-258 e Carteiras Digitais 1.43 do kit Win32.
+Verificações posteriores compararam os 444 IDs de campos da seção 5.3.2 com VRS-260; guias específicos citam consultas adicionais direcionadas. Isso não é uma
+auditoria semântica completa de VRS-260. Os PDFs do kit x64 não foram lidos nem usados.
+O binário x64 fornecido é anterior a esses documentos. Por isso, as capacidades
+informam os símbolos efetivamente presentes, e os métodos opcionais falham explicitamente quando
+um ponto de entrada está ausente; recursos documentados mais recentes ainda exigem testes com o fornecedor.
 
-On WSL with an installed Visual Studio C++ x64 toolchain and Windows SDK, run
-`rustup target add x86_64-pc-windows-msvc` once, then
-`bash scripts/build-windows-x64.sh` from the project root. The script uses Rust's
-bundled `rust-lld` and existing Windows import libraries, with static CRT. Set
-`SITEF_MSVC_LIB_DIR`, `SITEF_UCRT_LIB_DIR`, and `SITEF_WINDOWS_UM_LIB_DIR` to override
-auto-detected x64 library folders; `SITEF_PROGRAMFILES_X86` overrides the default
-WSL mount `/mnt/c/Program Files (x86)`. It downloads no vendor library and copies
-no compiler libraries into packages. Missing Microsoft PDB warnings affect debug
-information only and do not establish runtime failure.
+No WSL, com as ferramentas Visual Studio C++ x64 e o Windows SDK instalados, execute
+`rustup target add x86_64-pc-windows-msvc` uma vez e depois
+`bash scripts/build-windows-x64.sh` na raiz do projeto. O script usa o
+`rust-lld` incluído no Rust e as bibliotecas de importação Windows existentes, com CRT estático. Defina
+`SITEF_MSVC_LIB_DIR`, `SITEF_UCRT_LIB_DIR` e `SITEF_WINDOWS_UM_LIB_DIR` para substituir
+as pastas de bibliotecas x64 detectadas automaticamente; `SITEF_PROGRAMFILES_X86` substitui o ponto de montagem
+padrão do WSL `/mnt/c/Program Files (x86)`. Não baixa bibliotecas do fornecedor nem copia
+bibliotecas do compilador para os pacotes. Avisos de ausência de Microsoft PDB afetam apenas as
+informações de depuração e não comprovam falha em execução.
 
-For a native Windows release build, run the following in PowerShell at the
-repository root after installing the Rust target, MSVC and Windows SDK:
+Para uma compilação nativa de distribuição no Windows, execute o seguinte no PowerShell, na
+raiz do repositório, após instalar o alvo Rust, MSVC e Windows SDK:
 
 ```powershell
 $repo = (Resolve-Path .).Path
@@ -56,31 +56,30 @@ $env:CARGO_ENCODED_RUSTFLAGS = @(
 cargo build --locked --release --target x86_64-pc-windows-msvc --manifest-path native/Cargo.toml
 ```
 
-The ASCII 31 separator preserves paths containing spaces. These flags use the
-static CRT and remap repository/profile paths so the executable does not expose
-personal build directories. Add another remap for a custom CARGO_HOME outside
-those roots. The packaging guard rejects embedded personal paths; a plain cargo
-release build without remapping may therefore be unsuitable for distribution.
-The WSL Windows build script and Linux build script apply remapping themselves.
-Stage only a freshly built artifact for the intended target.
+O separador ASCII 31 preserva caminhos com espaços. Essas opções usam
+CRT estático e remapeiam caminhos do repositório e do perfil para que o executável não exponha
+diretórios pessoais de compilação. Acrescente outro remapeamento para um CARGO_HOME personalizado fora
+dessas raízes. A verificação de empacotamento rejeita caminhos pessoais incorporados; uma compilação cargo
+release simples sem remapeamento pode, portanto, ser inadequada para distribuição.
+Os scripts de compilação Windows pelo WSL e Linux aplicam o remapeamento por conta própria.
+Prepare para empacotamento somente um artefato recém-compilado para o alvo pretendido.
 
-
-`load` parameters:
+Parâmetros de `load`:
 
 ```json
 {"id":1,"method":"load","params":{"libraryPath":"C:\\vendor\\CliSiTef64I.dll","nativeEncoding":"windows-1252"}}
 ```
 
-Optional `workingDirectory` must be absolute, defaults to the library directory,
-and is set only inside the helper process. `nativeEncoding` accepts
-`windows-1252` (initial explicit default), `utf-8`, or `ascii`. Actual vendor
-encoding must be checked in simulator tests before production. Input encoding
-loss and embedded NUL are rejected. Returned native data retains original base64
-bytes and an explicit `decodingError` marker; malformed native text never silently
-replaces the financial status. `continue.bufferBase64` bypasses text encoding;
-the response field has the same name.
+O parâmetro opcional `workingDirectory` deve ser absoluto, assume por padrão o diretório da biblioteca
+e só é aplicado dentro do processo da ponte. `nativeEncoding` aceita
+`windows-1252` (padrão inicial explícito), `utf-8` ou `ascii`. A codificação efetiva do fornecedor
+deve ser conferida em testes com simulador antes da produção. Perda na codificação da entrada
+e NUL embutido são rejeitados. Os dados nativos retornados preservam os bytes originais em base64
+e um marcador explícito `decodingError`; texto nativo malformado nunca substitui silenciosamente
+o status financeiro. `continue.bufferBase64` dispensa a codificação de texto;
+o campo de resposta tem o mesmo nome.
 
-`load` and `capabilities` return:
+`load` e `capabilities` retornam:
 
 ```json
 {
@@ -99,121 +98,121 @@ the response field has the same name.
 }
 ```
 
-Errors have `{id,error:{code,message}}`; native returns keep their original
-numbers in `result`, with no context-free success/denial mapping. Error messages
-never interpolate native buffers, collection results, or native loader paths.
-The process loads one library for its lifetime and serializes all calls.
+Erros têm `{id,error:{code,message}}`; os retornos nativos preservam seus números
+originais em `result`, sem mapeamento de sucesso/negação fora de contexto. Mensagens de erro
+nunca interpolam buffers nativos, resultados de coleta ou caminhos do carregador nativo.
+O processo carrega uma única biblioteca durante sua vida e serializa todas as chamadas.
 
-Methods implemented:
+Métodos implementados:
 
-| Method | Parameters | Result |
+| Método | Parâmetros | Resultado |
 | --- | --- | --- |
 | configure | server, storeId, terminalId, reserved=0, additionalParameters | status |
 | start | functionId, amount, fiscalDocument, fiscalDate, fiscalTime, operator, additionalParameters | status |
 | continue | buffer, bufferBase64?, continueFlag, bufferSize (20000–1048576) | status, command, fieldType, minLength, maxLength, buffer, bufferBase64, decodingError |
-| finish | confirm (0 or 1), fiscalDocument, fiscalDate, fiscalTime, additionalParameters | returned:true (native void) |
-| version | none | status, libraryVersion, interfaceVersion |
-| pendingCount | fiscalDate, fiscalDocument | count, status (same native return) |
-| flushMessages | none | status |
-| pinpadPresent / pinpadKeepAlive / pinpadKey | none | status |
+| finish | confirm (0 ou 1), fiscalDocument, fiscalDate, fiscalTime, additionalParameters | returned:true (retorno nativo void) |
+| version | nenhum | status, libraryVersion, interfaceVersion |
+| pendingCount | fiscalDate, fiscalDocument | count, status (mesmo retorno nativo) |
+| flushMessages | nenhum | status |
+| pinpadPresent / pinpadKeepAlive / pinpadKey | nenhum | status |
 | pinpadPermanentMessage / pinpadMessage / pinpadYesNo | message | status |
-| pinpadInfo | none | UNVERIFIED_OUTPUT_BOUND; use start functionId 775 |
+| pinpadInfo | nenhum | UNVERIFIED_OUTPUT_BOUND; use start functionId 775 |
 | validateBarcode | data | status, documentType |
-| removeCard | none | status |
+| removeCard | nenhum | status |
 | startBanking | fiscalDocument, fiscalDate, fiscalTime, operator, additionalParameters | status |
-| readSecureCard / readTrack3 | message | status (then continue loop) |
-| readPassword | securityKey (exactly 64 native bytes) | status (then continue loop) |
-| readPasswordDirect | securityKey (exactly 64 native bytes) | status, encryptedPassword |
-| readChip | modality, additionalParameters | status (then continue loop) |
+| readSecureCard / readTrack3 | message | status (depois, laço de continuação) |
+| readPassword | securityKey (exatamente 64 bytes nativos) | status (depois, laço de continuação) |
+| readPasswordDirect | securityKey (exatamente 64 bytes nativos) | status, encryptedPassword |
+| readChip | modality, additionalParameters | status (depois, laço de continuação) |
 
-Version output strings are objects `{text,rawBase64,decodingError}`. In
-capabilities, `available` reports an exported symbol and `callable` additionally
-requires an enabled callable wrapper. `configureEx` and `readChipEx` describe
-export variants, not separate methods: their `invocationMethod` values point to
-`configure` and `readChip`, which select the extended export when present. These
-two metadata variants have `callable:false`. `pinpadInfo` is blocked because its direct
-ABI has no capacity argument and the manual states a minimum allocation without
-a verified maximum output bound. Function 775 uses bounded continuation instead.
-`readPassword` is a proprietary store-card function, not a way to collect payment
-card PINs; encrypted material must never enter logs or generic UI inputs.
+As strings de saída da versão são objetos `{text,rawBase64,decodingError}`. Nas
+capacidades, `available` informa um símbolo exportado, e `callable` exige adicionalmente
+um método de chamada habilitado. `configureEx` e `readChipEx` descrevem
+variantes de exportação, não métodos separados: seus valores `invocationMethod` apontam para
+`configure` e `readChip`, que selecionam a exportação estendida quando presente. Essas
+duas variantes de metadados têm `callable:false`. `pinpadInfo` é bloqueado porque sua
+ABI direta não tem argumento de capacidade, e o manual informa uma alocação mínima sem
+um limite máximo de saída verificado. A função 775 usa, em seu lugar, continuação com limite definido.
+`readPassword` é uma função de cartão proprietário da loja, não um meio de coletar PINs de
+cartões de pagamento; material criptografado nunca deve entrar em logs ou campos genéricos da interface.
 
-Continuation retains native command/type/size outputs across calls as VRS-258
-requires. The first call starts with zeroed outputs. The caller must echo the
-original bytes for command 0 and provide collection responses for other commands.
-`AbortSignal`, a timeout, a process exit, and a closed modal do not establish a
-financial cancellation. Send `continueFlag:-1` and process the terminal result.
-There is no automatic retry, confirmation, reversal, or journal in this low-level
-host; the SDK/integrator owns durable decisions and recovery.
+A continuação preserva as saídas nativas de comando, tipo e tamanho entre chamadas, conforme exige VRS-258.
+A primeira chamada começa com as saídas zeradas. O chamador deve devolver os
+bytes originais no comando 0 e fornecer respostas de coleta nos demais comandos.
+`AbortSignal`, tempo limite, encerramento do processo e fechamento do modal não comprovam
+cancelamento financeiro. Envie `continueFlag:-1` e processe o resultado terminal.
+Não há repetição automática, confirmação, desfazimento ou registro durável neste
+processo de baixo nível; decisões persistentes e recuperação cabem ao SDK/integrador.
 
-Explicit coverage gaps pending verification: direct secure-card/track
-entrypoints with native callbacks and ASCII-interface variants are not exposed
-as generic arbitrary FFI. They require verified signatures, cancellation and
-bounded buffer tests. All standard transaction modalities remain accessible via
-`start.functionId`, including secure-reader modalities 430/431, and unrestricted
-raw `additionalParameters`. The initial helper must not be described as complete
-coverage or homologated until these gaps and vendor simulator tests are closed.
+Lacunas explícitas de cobertura pendentes de verificação: pontos de entrada diretos de leitura segura de cartão/trilha
+com callbacks nativos e variantes de interface ASCII não são expostos
+como FFI genérica arbitrária. Eles exigem assinaturas verificadas, cancelamento e
+testes de limites de buffers. Todas as modalidades padrão de transação permanecem acessíveis por
+`start.functionId`, inclusive modalidades de leitor seguro 430/431, e por
+`additionalParameters` bruto sem restrição de opções. A ponte inicial não deve ser descrita como cobertura
+completa ou homologada enquanto essas lacunas e os testes com simulador do fornecedor não forem concluídos.
 
-Run own-contract tests using `cargo test` and `python3 tests/smoke.py`. The latter
-compiles an original synthetic C shared library and tests actual process IPC;
-it never loads vendor binaries.
-`python3 tests/smoke_tcp.py` additionally verifies the opt-in socket handshake,
-nonce removal before FFI, and the same loop against our own synthetic fixture.
+Execute os testes dos contratos próprios com `cargo test` e `python3 tests/smoke.py`. Este último
+compila uma biblioteca C compartilhada sintética original e testa a comunicação real entre processos;
+nunca carrega binários do fornecedor.
+`python3 tests/smoke_tcp.py` também verifica a autenticação inicial do socket opcional,
+a remoção do nonce antes da FFI e o mesmo laço com nossa biblioteca sintética.
 
-## Linux build and runtime
+## Compilação e execução no Linux
 
-On a glibc Linux development host, install the Rust target
-`rustup target add i686-unknown-linux-gnu` and the distribution's GCC multilib
-development package (Debian/Ubuntu: `gcc-multilib`). Then run
-`bash scripts/build-linux-ia32.sh` from the repository root. The output is
+Em um ambiente de desenvolvimento Linux glibc, instale o alvo Rust
+`rustup target add i686-unknown-linux-gnu` e o pacote de desenvolvimento GCC multilib
+da distribuição (Debian/Ubuntu: `gcc-multilib`). Em seguida, execute
+`bash scripts/build-linux-ia32.sh` na raiz do repositório. A saída é
 `native/target/i686-unknown-linux-gnu/release/sitef-bridge`.
-`SITEF_LINUX_SYSROOT` optionally selects an existing local multilib sysroot;
-the build does not download or bundle a runtime and embeds no sysroot rpath.
+`SITEF_LINUX_SYSROOT` seleciona opcionalmente uma raiz de sistema multilib local existente;
+a compilação não baixa nem inclui um ambiente de execução e não incorpora rpath dessa raiz.
 
-Deployment requires a kernel capable of running i386 executables, the 32-bit
-glibc loader (`/lib/ld-linux.so.2`), libc/libgcc and any 32-bit dependencies
-required by the integrator's vendor kit. On Debian/Ubuntu these typically
-include `libc6-i386` and `lib32gcc-s1`; inspect the particular kit's dependencies.
-Build against the oldest glibc baseline you intend to support, and verify
-`readelf --version-info` on the executable. A build on a newer distro is not
-automatically compatible with older glibc. Alpine/musl and Linux ARM are not
-supported by these artifacts. System installation and USB access are separate
-integrator setup steps, not performed by the package.
+A implantação exige kernel capaz de executar binários i386, o carregador
+glibc de 32 bits (`/lib/ld-linux.so.2`), libc/libgcc e quaisquer dependências de 32 bits
+exigidas pelo kit do fornecedor usado pelo integrador. No Debian/Ubuntu, isso normalmente
+inclui `libc6-i386` e `lib32gcc-s1`; inspecione as dependências do kit específico.
+Compile com a versão-base de glibc mais antiga que pretende suportar e confira
+`readelf --version-info` no executável. Uma compilação em distribuição mais recente não é
+automaticamente compatível com glibc mais antiga. Alpine/musl e Linux ARM não são
+compatíveis com esses artefatos. Instalação no sistema e acesso USB são etapas separadas
+de configuração pelo integrador, não executadas pelo pacote.
 
-The vendor may depend on companion libraries beside `libclisitef.so`.
-Set `LD_LIBRARY_PATH` in the **helper's startup environment** to the trusted
-vendor directory and required 32-bit runtime directories, using the SDK bridge
-environment option or a manual wrapper. Changing workingDirectory alone does
-not change Linux dynamic-loader search paths. Do not add untrusted directories
-or an empty path component. The user must separately supply INI/certificates
-and configure the real Linux pinpad device. Windows COM names are not Linux
-device paths. Never attach USB, alter device permissions or run payments as an
-installation test.
+O fornecedor pode depender de bibliotecas auxiliares ao lado de `libclisitef.so`.
+Defina `LD_LIBRARY_PATH` no **ambiente de inicialização da ponte** para o diretório confiável
+do fornecedor e os diretórios necessários do ambiente de execução de 32 bits, usando a opção de ambiente
+da ponte no SDK ou um script de inicialização manual. Alterar apenas workingDirectory não
+muda os caminhos de busca do carregador dinâmico Linux. Não acrescente diretórios não confiáveis
+nem componentes de caminho vazios. O usuário deve fornecer INI/certificados separadamente
+e configurar o dispositivo pinpad Linux real. Nomes COM do Windows não são caminhos de dispositivos
+Linux. Nunca conecte USB, altere permissões de dispositivos ou execute pagamentos como
+teste de instalação.
 
-Linux capabilities report `platform: "linux"`, `architecture: "x86"`,
-`runtimeTarget: "linux-ia32"`, `fieldTypeBytes: 4`. Linux support is not vendor
-homologation. Earlier local simulator communication tests do not establish
-pinpad, payment, cancellation or reconciliation coverage.
+As capacidades Linux informam `platform: "linux"`, `architecture: "x86"`,
+`runtimeTarget: "linux-ia32"`, `fieldTypeBytes: 4`. Suporte a Linux não é homologação
+do fornecedor. Testes locais anteriores de comunicação com simulador não comprovam
+cobertura de pinpad, pagamento, cancelamento ou reconciliação.
 
-For full own-contract IPC smoke coverage in an i686 process:
+Para cobertura completa dos testes básicos de comunicação entre processos dos contratos próprios em um processo i686:
 `SITEF_SMOKE_TARGET=i686-unknown-linux-gnu SITEF_SMOKE_CC="gcc -m32" python3 native/tests/smoke.py`.
-This loads an original synthetic ELF32 fixture with the real i686 load guard
-(testMode false), not a vendor library. `SITEF_SMOKE_RUNNER` may specify a local
-32-bit loader for a user-provisioned sysroot. Standard host smoke tests continue
-to use testMode true. Neither proves the vendor's complete ABI.
+Isso carrega uma biblioteca ELF32 sintética original com a verificação real de carregamento i686
+(testMode false), não uma biblioteca do fornecedor. `SITEF_SMOKE_RUNNER` pode especificar um carregador
+local de 32 bits para uma raiz de sistema fornecida pelo usuário. Os testes básicos padrão no ambiente de desenvolvimento continuam
+usando testMode true. Nenhum deles comprova a ABI completa do fornecedor.
 
-## Distribution
+## Distribuição
 
-Platform-specific npm packages contain only the original bridge executable and
-metadata/licenses. Proprietary runtime files must be provisioned separately.
-Manual `bridgeExecutable` paths remain supported. The bridge's own version is
-independent of the npm version; the protocol handshake and actual capabilities
-remain authoritative. Package builds do not imply publication, financial
-homologation, or a supported Linux64 vendor library. See
-[release preparation](../docs/releasing.md).
+Pacotes npm específicos de plataforma contêm apenas o executável da ponte própria e
+metadados/licenças. Arquivos proprietários de execução devem ser fornecidos separadamente.
+Caminhos manuais em `bridgeExecutable` continuam compatíveis. A versão própria da ponte é
+independente da versão npm; a negociação do protocolo e as capacidades efetivas
+continuam sendo a referência autoritativa. Compilar pacotes não implica publicação, homologação
+financeira nem suporte a biblioteca Linux64 do fornecedor. Consulte a
+[preparação de publicação](../docs/releasing.md).
 
-## License
+## Licença
 
-The original Rust bridge code is licensed under [MIT](../LICENSE), copyright
-2026 cosmemilton. Dependencies retain their own licenses. This license does not
-grant rights to the proprietary CliSiTef SDK, DLLs, configuration files,
-certificates or manuals. Obtain those separately through an authorized integrator.
+O código original da ponte Rust está sob a licença [MIT](../LICENSE), copyright
+2026 cosmemilton. Dependências mantêm suas próprias licenças. Esta licença não
+concede direitos sobre o SDK CliSiTef proprietário, DLLs, arquivos de configuração,
+certificados ou manuais. Obtenha-os separadamente por meio de um integrador autorizado.

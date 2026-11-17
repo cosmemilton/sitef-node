@@ -5,7 +5,7 @@ import { SitefError } from './errors.js';
 
 const require = createRequire(import.meta.url);
 
-/** Package architecture describes the native helper, not necessarily Node. */
+/** A arquitetura do pacote descreve a ponte nativa, não necessariamente o Node. */
 export function bridgePackageFor(platform: string, architecture: string): string {
   if (platform === 'win32' && architecture === 'x64')
     return '@cosmemilton/sitef-bridge-win32-x64';
@@ -15,7 +15,7 @@ export function bridgePackageFor(platform: string, architecture: string): string
     'Bridge automático disponível para Windows x64 e Linux x64/ia32 com biblioteca i686.');
 }
 
-/** Explicit paths override optional packages. No download or shell execution. */
+/** Caminhos explícitos têm precedência sobre pacotes opcionais. Sem download nem execução por shell. */
 export function resolveBridge(options: {
   bridgeExecutable?: string;
   bridgeDirectory?: string;
@@ -27,9 +27,9 @@ export function resolveBridge(options: {
       const installed: unknown = require(packageName);
       if (!installed || typeof installed !== 'object' ||
           !('executable' in installed) || typeof installed.executable !== 'string')
-        throw new Error('Invalid bridge package');
+        throw new Error('Pacote da ponte inválido');
       executable = installed.executable;
-      if (!isAbsolute(executable)) throw new Error('Invalid executable path');
+      if (!isAbsolute(executable)) throw new Error('Caminho do executável inválido');
       accessSync(executable, process.platform === 'win32' ? constants.F_OK : constants.X_OK);
     } catch (cause) {
       throw new SitefError('BRIDGE_NOT_INSTALLED',

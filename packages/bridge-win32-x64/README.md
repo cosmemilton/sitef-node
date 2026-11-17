@@ -1,9 +1,9 @@
 # @cosmemilton/sitef-bridge-win32-x64
 
-Optional platform package for @cosmemilton/sitef. Contains only the owned Rust bridge, not the proprietary CliSiTef SDK. Supply your separately licensed vendor library by absolute path.
+Pacote opcional de plataforma para `@cosmemilton/sitef`. Contém somente a ponte Rust própria, não o SDK proprietário CliSiTef. O integrador deve fornecer sua biblioteca do fornecedor, licenciada separadamente, por caminho absoluto.
 
-Requires Windows x64 and a Windows x64 vendor DLL.
+Exige Windows x64 e a biblioteca de interface do fornecedor em DLL Windows x64, como `CliSiTef64I.dll`. A DLL interna `CliSiTef.dll` não substitui essa interface.
 
-The CommonJS export exposes an absolute executable path. Prefer automatic discovery through createSitef. A manual bridgeExecutable remains supported. See the main project README for configuration, runtime dependencies and validation limits. Synthetic tests are not financial homologation.
+A exportação CommonJS fornece o caminho absoluto do executável. Prefira a descoberta automática pelo SDK (`ClientSitef.create` ou `createSitef`). A opção manual `bridgeExecutable` continua disponível. Consulte o [guia de instalação e operação](https://github.com/cosmemilton/sitef-node/blob/main/docs/bridge-distribution.md) para configuração, dependências de execução e limites de validação. Testes sintéticos não equivalem a homologação financeira.
 
-Bundled Rust dependencies retain their licenses in THIRD_PARTY_NOTICES.txt.
+As dependências Rust incluídas mantêm suas licenças em `THIRD_PARTY_NOTICES.txt`.
